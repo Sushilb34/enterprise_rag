@@ -1,0 +1,17 @@
+.env
+venv
+.venv
+.dist
+data
+__pycache__
+pip-wheel-metadata/
+pip-log.txt
+pip-delete-this-directory.txt
+# =========================
+#  VECTOR DATABASES
+# =========================
+chroma/
+chroma_db/
+faiss_index/
+*.faiss
+*.pkl

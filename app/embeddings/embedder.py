@@ -11,7 +11,7 @@ settings = get_settings()
 class EmbeddingModel:
     """
     Enterprise Embedding Layer
-
+ 
     Responsibilities:
     - Load embedding model from config
     - Provide document embedding

@@ -11,7 +11,7 @@ logger = get_logger()
 class PDFLoader:
     """
     Enterprise PDF Loader
-
+ 
     Responsibilities:
     - Load PDFs from directory
     - Extract page-wise text

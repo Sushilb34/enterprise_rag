@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     LLM_MODEL: str
     LLM_TEMPERATURE: float
+    GEMINI_API_KEY: str
 
     # Embeddings
     EMBEDDING_MODEL: str

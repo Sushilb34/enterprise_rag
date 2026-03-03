@@ -132,7 +132,7 @@ Answer:
                         {"role": "user", "content": prompt}
                     ]
                 )
-                return response.choices[0].message["content"]
+                return response.choices[0].message.content
 
         except Exception as e:
             logger.error(f"LLM generation error: {e}")

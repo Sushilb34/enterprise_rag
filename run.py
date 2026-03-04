@@ -48,7 +48,6 @@ def main():
 
     if args.query:
         logger.info("Running query pipeline...")
-        rag.ingest_documents()  # Ensure retriever is initialized
         answer = rag.ask_question(args.query)
         print("\nAnswer:\n")
         print(answer)

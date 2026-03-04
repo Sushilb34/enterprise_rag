@@ -1,13 +1,13 @@
-from typing import List, Dict
-import numpy as np
 from collections import defaultdict
+from typing import Dict, List
 
+import numpy as np
 from langchain_core.documents import Document
 
-from app.vectorstore.faiss_store import FAISSVectorStore
-from app.vectorstore.bm25_store import BM25Store
 from app.core.config import get_settings
 from app.core.logger import get_logger
+from app.vectorstore.bm25_store import BM25Store
+from app.vectorstore.faiss_store import FAISSVectorStore
 
 logger = get_logger()
 settings = get_settings()
@@ -22,18 +22,46 @@ class HybridRetriever:
     - Sparse keyword search (BM25)
     """
 
-    def __init__(self, documents: List[Document]):
+    def __init__(self, documents: List[Document] | None = None):
         self.alpha = settings.HYBRID_ALPHA  # weight for vector score
         self.top_k = settings.TOP_K
 
         logger.info(f"Initializing Hybrid Retriever | alpha={self.alpha}")
 
-        # Initialize vector store
+        # Initialize vector store (loads existing index if present)
         self.vector_store = FAISSVectorStore()
 
         # Initialize BM25 store
         self.bm25_store = BM25Store()
-        self.bm25_store.build_index(documents)
+
+        if documents:
+            # fresh ingestion path: add to vectorstore and build BM25
+            self.vector_store.add_documents(documents)
+            self.bm25_store.build_index(documents)
+        else:
+            # query-only path: try to load BM25 from disk, fallback to docstore if needed
+            logger.info("Query-only mode: loading BM25 index from disk if available.")
+            try:
+                # Try to load from disk first
+                self.bm25_store._load_from_disk()
+                logger.info("BM25 index loaded from disk.")
+            except Exception:
+                # Fallback: try to build from docstore
+                logger.info(
+                    "BM25 disk index not available. Attempting to load from FAISS docstore."
+                )
+                try:
+                    ds = self.vector_store.vectorstore.docstore
+                    # InMemoryDocstore uses a dict attribute named `_dict`
+                    docs_for_bm25 = list(getattr(ds, "_dict", {}).values())
+                    logger.info(
+                        f"Loaded {len(docs_for_bm25)} documents from FAISS docstore for BM25."
+                    )
+                    self.bm25_store.build_index(docs_for_bm25)
+                except Exception as e:
+                    logger.warning(
+                        f"Unable to load BM25 from disk or docstore: {e}. BM25 will be empty."
+                    )
 
     def _normalize(self, scores: List[float]) -> List[float]:
         """
@@ -68,11 +96,13 @@ class HybridRetriever:
         #Hybrid scoring needs larger scores = better
         #So we invert it by negating the scores
 
+        bm25_results = self.bm25_store.search(query, k=self.top_k * 3)
         # BM25 search
-        bm25_docs = self.bm25_store.search(query, k=self.top_k)
-
+        
+        bm25_docs = [doc for doc, score in bm25_results]
         # Fake BM25 scoring (rank-based)
-        bm25_scores = list(reversed(range(1, len(bm25_docs) + 1)))
+        
+        bm25_scores = [score for doc, score in bm25_results]
 
         # Normalize scores
         norm_vector = self._normalize(vector_scores)

@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import List, Optional
 
 import faiss
+# used for vector store persistence when building new indexes
+from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
@@ -66,10 +68,13 @@ class FAISSVectorStore:
 
             index = self._create_hnsw_index(dimension)
 
+            # create a new FAISS store with a writable docstore so
+            # that `add_documents` works correctly.  We use an in-memory
+            # docstore and persist the mapping alongside the index.
             self.vectorstore = FAISS(
                 embedding_function=self.embedding_model.model,
                 index=index,
-                docstore=None,
+                docstore=InMemoryDocstore(),
                 index_to_docstore_id={},
             )
 

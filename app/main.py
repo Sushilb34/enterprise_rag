@@ -1,12 +1,13 @@
 from typing import List
 
+from langchain_core.documents import Document
+
 from app.core.logger import get_logger
 from app.ingestion.loader import PDFLoader
 from app.ingestion.splitter import DocumentSplitter
-from app.vectorstore.hybrid_store import HybridRetriever
-from app.retrieval.reranker import CrossEncoderReranker
 from app.llm.llm_provider import LLMProvider
-from langchain_core.documents import Document
+from app.retrieval.reranker import CrossEncoderReranker
+from app.vectorstore.hybrid_store import HybridRetriever
 
 logger = get_logger()
 
@@ -60,7 +61,13 @@ class EnterpriseRAG:
         3. LLM generation
         """
         if self.retriever is None:
-            raise RuntimeError("Hybrid retriever not initialized. Run ingest_documents() first.")
+            # retriever hasn't been set up yet.  Try to load from an existing
+            # vector index on disk rather than re-running the entire ingestion
+            # pipeline; this keeps --query lightweight and avoids duplicates.
+            logger.info("Retriever not initialized, attempting to load existing index.")
+            self.retriever = HybridRetriever(None)
+            if self.retriever is None:
+                raise RuntimeError("Failed to initialize retriever.")
 
         logger.info(f"Received query: {query}")
 
@@ -81,7 +88,8 @@ class EnterpriseRAG:
 # Optional standalone test
 if __name__ == "__main__":
     rag = EnterpriseRAG()
-    rag.ingest_documents()
+    if not rag.is_index_ready():
+        rag.ingest_documents()
 
     while True:
         q = input("Enter your question (or 'exit'): ").strip()

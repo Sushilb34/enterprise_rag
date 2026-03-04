@@ -1,5 +1,5 @@
 from typing import List
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from app.core.config import get_settings
 from app.core.logger import get_logger

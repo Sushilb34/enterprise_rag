@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Vectorstore
     VECTORSTORE_TYPE: str
     FAISS_INDEX_PATH: str
+    BM25_INDEX_PATH: str
 
     # Retrieval
     TOP_K: int

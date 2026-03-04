@@ -1,8 +1,8 @@
 import argparse
 import sys
 
-from app.main import EnterpriseRAG
 from app.core.logger import get_logger
+from app.main import EnterpriseRAG
 
 logger = get_logger()
 

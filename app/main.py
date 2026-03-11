@@ -82,7 +82,7 @@ class EnterpriseRAG:
 
         logger.info("Query processed successfully.")
 
-        return answer
+        return answer , reranked_docs
 
 
 # Optional standalone test

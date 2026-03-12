@@ -19,7 +19,7 @@ class PDFLoader:
     - Return LangChain Document objects
     """
 
-    def __init__(self, data_dir: str = "data/raw"):
+    def __init__(self, data_dir: str):
         self.data_path = Path(data_dir)
 
         if not self.data_path.exists():

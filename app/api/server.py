@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from app.services.rag_service import RAGService
 from app.api.dependencies import set_rag_service
 
-from app.api.routes import query, health ,ingest
+from app.api.routes import query, health ,ingest, admin
 from app.core.logger import get_logger
 
 logger = get_logger()
@@ -45,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(query.router)
     app.include_router(ingest.router)
+    app.include_router(admin.router)
 
     logger.info("FastAPI application created successfully.")
 

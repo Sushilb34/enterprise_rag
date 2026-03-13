@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str
 
+    # Data
+    DATA_DIR: str
+
     class Config:
         env_file = ".env"
 

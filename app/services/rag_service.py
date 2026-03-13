@@ -1,11 +1,14 @@
 from typing import List
+from pathlib import Path
 
 from langchain_core.documents import Document
 
+from app.core.config import get_settings
 from app.main import EnterpriseRAG
 from app.schemas.query import Source
 from app.core.logger import get_logger
 
+settings = get_settings()
 logger = get_logger()
 
 
@@ -36,6 +39,53 @@ class RAGService:
         logger.info("Ingestion completed.")
 
         return len(chunks)
+    
+    def reindex(self):
+        """
+        Rebuild the entire index from scratch.
+
+        This deletes existing FAISS and BM25 indexes,
+        reinitializes the RAG system, and runs ingestion again.
+        """
+
+        logger.info("Starting full reindex process...")
+
+        # Delete FAISS index files
+        faiss_path = Path(settings.FAISS_INDEX_PATH)
+
+        if faiss_path.exists():
+            logger.info("Deleting existing FAISS index files...")
+            for file in faiss_path.glob("*"):
+                file.unlink()
+
+        # Delete BM25 index
+        bm25_path = Path(settings.BM25_INDEX_PATH)
+
+        if bm25_path.exists():
+            logger.info("Deleting existing BM25 index file...")
+            bm25_path.unlink()
+
+            metadata_path =  Path(str(bm25_path) + ".meta")
+            if metadata_path.exists():
+                metadata_path.unlink()
+                logger.info("BM25 metadata file deleted successfully.")
+            else:
+                logger.info("BM25 metadata file NOT found.")
+
+        logger.info("Old indexes removed successfully.")
+
+        # Reinitialize the RAG pipeline
+        logger.info("Reinitializing Enterprise RAG pipeline...")
+        self.rag = EnterpriseRAG()
+
+        # Run ingestion again
+        logger.info("Running ingestion to rebuild indexes...")
+        chunks = self.rag.ingest_documents()
+
+        logger.info(f"Reindex completed successfully")
+
+        return True
+    
 
     def query(self, question: str):
         """
@@ -49,6 +99,8 @@ class RAGService:
         sources = self._extract_sources(documents)
 
         return answer, sources
+    
+    
 
     def _extract_sources(self, documents: List[Document]) -> List[Source]:
         """

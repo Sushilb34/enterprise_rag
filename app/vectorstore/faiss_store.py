@@ -31,8 +31,10 @@ class FAISSVectorStore:
         self.embedding_model = EmbeddingModel()
         self.vectorstore: Optional[FAISS] = None
 
+        # Make sure directory exists
         self.index_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Load or initialize index safely
         self._load_or_initialize()
 
     def _create_hnsw_index(self, dimension: int):
@@ -50,27 +52,42 @@ class FAISSVectorStore:
     def _load_or_initialize(self):
         """
         Load existing FAISS index if present,
-        otherwise initialize a new one.
+        otherwise initialize a new one safely.
         """
-        if self.index_path.exists():
-            logger.info("Loading existing FAISS index...")
-            self.vectorstore = FAISS.load_local(
-                str(self.index_path),
-                self.embedding_model.model,
-                allow_dangerous_deserialization=True,
-            )
-            logger.info("FAISS index loaded successfully.")
-        else:
-            logger.info("No existing index found. Initializing new FAISS store.")
-            # Temporary dummy vector to determine dimension
+        try:
+            if self.index_path.exists():
+                logger.info(f"Loading existing FAISS index from {self.index_path}")
+                self.vectorstore = FAISS.load_local(
+                    str(self.index_path),
+                    self.embedding_model.model,
+                    allow_dangerous_deserialization=True,
+                )
+                logger.info("FAISS index loaded successfully.")
+            else:
+                logger.info("No existing FAISS index found. Initializing new FAISS store.")
+
+                # Dummy vector to determine embedding dimension
+                dummy_vector = self.embedding_model.embed_query("dimension test")
+                dimension = len(dummy_vector)
+
+                # Create HNSW index
+                index = self._create_hnsw_index(dimension)
+
+                # Create new FAISS store with in-memory docstore
+                self.vectorstore = FAISS(
+                    embedding_function=self.embedding_model.model,
+                    index=index,
+                    docstore=InMemoryDocstore(),
+                    index_to_docstore_id={},
+                )
+
+        except Exception as e:
+            logger.error(f"Error loading FAISS index: {e}")
+            logger.info("Initializing a new empty FAISS index.")
             dummy_vector = self.embedding_model.embed_query("dimension test")
             dimension = len(dummy_vector)
-
             index = self._create_hnsw_index(dimension)
 
-            # create a new FAISS store with a writable docstore so
-            # that `add_documents` works correctly.  We use an in-memory
-            # docstore and persist the mapping alongside the index.
             self.vectorstore = FAISS(
                 embedding_function=self.embedding_model.model,
                 index=index,
@@ -95,7 +112,11 @@ class FAISSVectorStore:
         """
         Persist FAISS index to disk.
         """
-        logger.info("Saving FAISS index to disk.")
+        if self.vectorstore is None:
+            logger.warning("No FAISS vectorstore to save.")
+            return
+
+        logger.info(f"Saving FAISS index to disk at {self.index_path}")
         self.vectorstore.save_local(str(self.index_path))
 
     def similarity_search(self, query: str, k: int = None):
@@ -104,6 +125,10 @@ class FAISSVectorStore:
         """
         if k is None:
             k = settings.TOP_K
+
+        if self.vectorstore is None:
+            logger.warning("FAISS vectorstore not initialized. Returning empty results.")
+            return []
 
         logger.info(f"Performing similarity search | top_k={k}")
         return self.vectorstore.similarity_search(query, k=k)

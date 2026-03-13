@@ -27,18 +27,18 @@ class RAGService:
         self.rag = EnterpriseRAG()
         logger.info("RAG Service initialized successfully.")
     
-    def ingest(self, data_path: str):
+    def ingest(self, data_dir: str):
         """
         Run document ingestion pipeline.
         """
 
-        logger.info(f"Starting ingestion from {data_path}")
+        logger.info(f"Starting ingestion from {data_dir}")
 
-        chunks = self.rag.ingest_documents(data_path)
+        chunks = self.rag.ingest_documents()
 
         logger.info("Ingestion completed.")
 
-        return len(chunks)
+        return True
     
     def reindex(self):
         """

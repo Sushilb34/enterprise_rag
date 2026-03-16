@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 from langchain_core.documents import Document
@@ -70,17 +71,34 @@ class EnterpriseRAG:
                 raise RuntimeError("Failed to initialize retriever.")
 
         logger.info(f"Received query: {query}")
+        total_start = time.perf_counter()
 
         # 1. Hybrid retrieval
+        retrieval_start = time.perf_counter()
         retrieved_docs = self.retriever.retrieve(query)
+        retrieval_time = time.perf_counter() - retrieval_start
 
         # 2. Rerank
+        rerank_start = time.perf_counter()
         reranked_docs = self.reranker.rerank(query, retrieved_docs)
+        rerank_time = time.perf_counter() - rerank_start
 
         # 3. Generate answer
+        llm_start = time.perf_counter()
         answer = self.llm.generate_answer(query, reranked_docs)
+        llm_time = time.perf_counter() - llm_start
 
-        logger.info("Query processed successfully.")
+        total_time = time.perf_counter() - total_start
+    
+        logger.info(
+            f"PIPELINE METRICS | "
+            f"retrieval={retrieval_time:.3f}s | "
+            f"rerank={rerank_time:.3f}s | "
+            f"llm={llm_time:.3f}s | "
+            f"total={total_time:.3f}s | "
+            f"retrieved_docs={len(retrieved_docs)} | "
+            f"reranked_docs={len(reranked_docs)}"
+        )
 
         return answer , reranked_docs
 

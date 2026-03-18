@@ -10,6 +10,7 @@ from app.llm.llm_provider import LLMProvider
 from app.retrieval.reranker import CrossEncoderReranker
 from app.vectorstore.hybrid_store import HybridRetriever
 from app.retrieval.source_deduplicator import SourceDeduplicator
+from app.guardrails.fallback_guard import FallbackGuard
 
 logger = get_logger()
 
@@ -33,6 +34,7 @@ class EnterpriseRAG:
         self.reranker = CrossEncoderReranker()
         self.documents: List[Document] = []
         self.source_deduplicator = SourceDeduplicator()
+        self.fallback_guard = FallbackGuard()
         logger.info("Enterprise RAG system initialized.")
 
     def ingest_documents(self):
@@ -88,6 +90,7 @@ class EnterpriseRAG:
         # 3. Generate answer
         llm_start = time.perf_counter()
         answer = self.llm.generate_answer(query, reranked_docs)
+        answer = self.fallback_guard.apply(answer, reranked_docs) # apply grounding guardrail
         llm_time = time.perf_counter() - llm_start
 
         total_time = time.perf_counter() - total_start

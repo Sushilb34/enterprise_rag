@@ -9,6 +9,7 @@ from app.ingestion.splitter import DocumentSplitter
 from app.llm.llm_provider import LLMProvider
 from app.retrieval.reranker import CrossEncoderReranker
 from app.vectorstore.hybrid_store import HybridRetriever
+from app.retrieval.source_deduplicator import SourceDeduplicator
 
 logger = get_logger()
 
@@ -31,6 +32,7 @@ class EnterpriseRAG:
         self.retriever = None
         self.reranker = CrossEncoderReranker()
         self.documents: List[Document] = []
+        self.source_deduplicator = SourceDeduplicator()
         logger.info("Enterprise RAG system initialized.")
 
     def ingest_documents(self):
@@ -99,6 +101,8 @@ class EnterpriseRAG:
             f"retrieved_docs={len(retrieved_docs)} | "
             f"reranked_docs={len(reranked_docs)}"
         )
+
+        reranked_docs = self.source_deduplicator.deduplicate(reranked_docs)
 
         return answer , reranked_docs
 

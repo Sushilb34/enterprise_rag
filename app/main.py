@@ -11,7 +11,7 @@ from app.retrieval.reranker import CrossEncoderReranker
 from app.vectorstore.hybrid_store import HybridRetriever
 from app.retrieval.source_deduplicator import SourceDeduplicator
 from app.guardrails.fallback_guard import FallbackGuard
-
+from app.evaluation.eval_logger import EvaluationLogger
 logger = get_logger()
 
 
@@ -35,6 +35,7 @@ class EnterpriseRAG:
         self.documents: List[Document] = []
         self.source_deduplicator = SourceDeduplicator()
         self.fallback_guard = FallbackGuard()
+        self.eval_logger = EvaluationLogger()
         logger.info("Enterprise RAG system initialized.")
 
     def ingest_documents(self):
@@ -107,6 +108,17 @@ class EnterpriseRAG:
 
         reranked_docs = self.source_deduplicator.deduplicate(reranked_docs)
 
+        eval_data = {
+            "query": query,
+            "retrieved_docs": len(retrieved_docs),
+            "top_hybrid_score": retrieved_docs[0].metadata.get("hybrid_score", 0.0) if retrieved_docs else 0.0,
+            "reranked_docs": len(reranked_docs),
+            "top_rerank_score": reranked_docs[0].metadata.get("rerank_score", 0.0) if reranked_docs else 0.0,
+            "answer_length": len(answer.split()),
+            "fallback_triggered": self.fallback_guard.is_weak_answer(answer),
+            "latency": round(total_time, 3)
+        }
+        self.eval_logger.log(eval_data)
         return answer , reranked_docs
 
 

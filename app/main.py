@@ -10,7 +10,7 @@ from app.llm.llm_provider import LLMProvider
 from app.retrieval.reranker import CrossEncoderReranker
 from app.vectorstore.hybrid_store import HybridRetriever
 from app.retrieval.source_deduplicator import SourceDeduplicator
-from app.guardrails.fallback_guard import FallbackGuard
+from app.guardrails.answer_guard import AnswerGuardrail
 from app.evaluation.eval_logger import EvaluationLogger
 logger = get_logger()
 
@@ -34,7 +34,7 @@ class EnterpriseRAG:
         self.reranker = CrossEncoderReranker()
         self.documents: List[Document] = []
         self.source_deduplicator = SourceDeduplicator()
-        self.fallback_guard = FallbackGuard()
+        self.answer_guardrail = AnswerGuardrail()
         self.eval_logger = EvaluationLogger()
         logger.info("Enterprise RAG system initialized.")
 
@@ -88,10 +88,15 @@ class EnterpriseRAG:
         reranked_docs = self.reranker.rerank(query, retrieved_docs)
         rerank_time = time.perf_counter() - rerank_start
 
+        reranked_docs = self.source_deduplicator.deduplicate(reranked_docs)
+
         # 3. Generate answer
         llm_start = time.perf_counter()
         answer = self.llm.generate_answer(query, reranked_docs)
-        answer = self.fallback_guard.apply(answer, reranked_docs) # apply grounding guardrail
+        answer, guardrail_triggered = self.answer_guardrail.apply(
+            answer, reranked_docs
+        )    
+
         llm_time = time.perf_counter() - llm_start
 
         total_time = time.perf_counter() - total_start
@@ -106,8 +111,6 @@ class EnterpriseRAG:
             f"reranked_docs={len(reranked_docs)}"
         )
 
-        reranked_docs = self.source_deduplicator.deduplicate(reranked_docs)
-
         eval_data = {
             "query": query,
             "retrieved_docs": len(retrieved_docs),
@@ -115,7 +118,7 @@ class EnterpriseRAG:
             "reranked_docs": len(reranked_docs),
             "top_rerank_score": reranked_docs[0].metadata.get("rerank_score", 0.0) if reranked_docs else 0.0,
             "answer_length": len(answer.split()),
-            "fallback_triggered": self.fallback_guard.is_weak_answer(answer),
+            "guardrail_triggered": guardrail_triggered,
             "latency": round(total_time, 3)
         }
         self.eval_logger.log(eval_data)

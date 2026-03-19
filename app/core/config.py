@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_LEVEL: str
+    log_path: str
 
     # Data
     DATA_DIR: str

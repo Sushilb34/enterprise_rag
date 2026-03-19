@@ -2,6 +2,9 @@ import json
 import os
 from datetime import datetime
 
+from app.core.config import get_settings
+
+settings = get_settings()
 
 class EvaluationLogger:
     """
@@ -9,8 +12,8 @@ class EvaluationLogger:
     Stores per-query metrics in JSONL(JSON per Line) format.
     """
 
-    def __init__(self, log_path: str = "logs/evaluation.jsonl"):
-        self.log_path = log_path
+    def __init__(self):
+        self.log_path = settings.LOG_PATH
 
         # ensure directory exists
         os.makedirs(os.path.dirname(self.log_path), exist_ok=True)

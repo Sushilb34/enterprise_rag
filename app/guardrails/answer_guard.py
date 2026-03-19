@@ -39,11 +39,13 @@ class AnswerGuardrail:
         if len(answer.strip()) < self.min_answer_length:
             triggered = True
 
-        # ---- If triggered → replace with safe answer ----
+        
         if triggered:
             answer = (
                 "The available documents do not contain sufficient information "
-                "to answer this query reliably."
+                "to answer this query reliably.To receive a precise response,"
+                "please refine your request by including the specific section,"
+                "or technical parameters you are referencing to."
             )
 
         return answer, triggered

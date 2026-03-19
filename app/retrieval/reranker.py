@@ -50,8 +50,18 @@ class CrossEncoderReranker:
         scored_docs = list(zip(documents, scores))
         scored_docs.sort(key=lambda x: x[1], reverse=True)
 
-        top_docs = [doc for doc, _ in scored_docs[: self.top_k]]
+        top_docs = []
 
-        logger.info(f"Reranking complete | returned={len(top_docs)}")
+        for rank, (doc, score) in enumerate(scored_docs[: self.top_k], start=1):
+            # Store score and rank in metadata
+            doc.metadata["rerank_score"] = float(score)
+            doc.metadata["rerank_rank"] = rank
+
+            top_docs.append(doc)
+
+        logger.info(
+            f"Reranking complete | returned={len(top_docs)} | "
+            f"top_rerank_score={top_docs[0].metadata.get('rerank_score', 0.0):.4f}"
+        )
 
         return top_docs

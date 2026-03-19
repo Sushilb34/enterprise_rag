@@ -128,9 +128,23 @@ class HybridRetriever:
             combined_scores.items(), key=lambda x: x[1], reverse=True
         )
 
-        final_docs = [doc_map[doc_id] for doc_id, _ in ranked_docs[: self.top_k]]
+        final_docs = []
 
-        logger.info(f"Hybrid retrieval complete | returned={len(final_docs)}")
+        for rank, (doc_id, score) in enumerate(ranked_docs[: self.top_k], start=1):
+            doc = doc_map[doc_id]
+
+            # Attach hybrid score into metadata
+            doc.metadata["hybrid_score"] = float(score)
+
+            # Attach retrieval rank into metadata
+            doc.metadata["retrieval_rank"] = rank
+
+            final_docs.append(doc)
+
+        logger.info(
+            f"Hybrid retrieval complete | returned={len(final_docs)} | "
+            f"top_hybrid_score={final_docs[0].metadata.get('hybrid_score', 0.0):.4f}"
+        )
 
         return final_docs
 

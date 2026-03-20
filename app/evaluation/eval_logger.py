@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.config import get_settings
 
@@ -22,7 +22,7 @@ class EvaluationLogger:
         """
         Append a single evaluation record.
         """
-        data["timestamp"] = datetime.utcnow().isoformat()
+        data["timestamp"] = datetime.now(timezone.utc).isoformat()
 
         with open(self.log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(data) + "\n")

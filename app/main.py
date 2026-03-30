@@ -4,14 +4,14 @@ from typing import List
 from langchain_core.documents import Document
 
 from app.core.logger import get_logger
+from app.evaluation.eval_logger import EvaluationLogger
+from app.guardrails.answer_guard import AnswerGuardrail
 from app.ingestion.loader import PDFLoader
 from app.ingestion.splitter import DocumentSplitter
 from app.llm.llm_provider import LLMProvider
 from app.retrieval.reranker import CrossEncoderReranker
 from app.vectorstore.hybrid_store import HybridRetriever
-from app.retrieval.source_deduplicator import SourceDeduplicator
-from app.guardrails.answer_guard import AnswerGuardrail
-from app.evaluation.eval_logger import EvaluationLogger
+
 logger = get_logger()
 
 
@@ -33,7 +33,6 @@ class EnterpriseRAG:
         self.retriever = None
         self.reranker = CrossEncoderReranker()
         self.documents: List[Document] = []
-        self.source_deduplicator = SourceDeduplicator()
         self.answer_guardrail = AnswerGuardrail()
         self.eval_logger = EvaluationLogger()
         logger.info("Enterprise RAG system initialized.")
@@ -87,8 +86,6 @@ class EnterpriseRAG:
         rerank_start = time.perf_counter()
         reranked_docs = self.reranker.rerank(query, retrieved_docs)
         rerank_time = time.perf_counter() - rerank_start
-
-        reranked_docs = self.source_deduplicator.deduplicate(reranked_docs)
 
         # 3. Generate answer
         llm_start = time.perf_counter()

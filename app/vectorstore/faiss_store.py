@@ -44,8 +44,8 @@ class FAISSVectorStore:
         logger.info(f"Creating HNSW index | dimension={dimension}")
 
         index = faiss.IndexHNSWFlat(dimension, 32)  # M=32
-        index.hnsw.efConstruction = 200
-        index.hnsw.efSearch = 64
+        index.hnsw.efConstruction = 200 # Higher = better recall, slower indexing
+        index.hnsw.efSearch = 64 # Higher = better recall, slower search
 
         return index
 
@@ -82,7 +82,7 @@ class FAISSVectorStore:
                 )
 
         except Exception as e:
-            logger.error(f"Error loading FAISS index: {e}")
+            logger.warning(f"FAISS index not found or corrupted. Rebuilding... | error={e}")
             logger.info("Initializing a new empty FAISS index.")
             dummy_vector = self.embedding_model.embed_query("dimension test")
             dimension = len(dummy_vector)

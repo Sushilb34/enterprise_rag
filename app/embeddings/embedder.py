@@ -26,8 +26,11 @@ class EmbeddingModel:
 
         self.model = HuggingFaceEmbeddings(
             model_name=self.model_name,
-            model_kwargs={"device": "cpu"},  # Change to 'cuda' if GPU available
-            encode_kwargs={"normalize_embeddings": True},
+            model_kwargs={
+                "device": "cpu", # Change to 'cuda' if GPU available
+                "trust_remote_code": True
+            },
+            encode_kwargs={"normalize_embeddings": True} # Normalize for cosine similarity
         )
 
         logger.info("Embedding model loaded successfully.")

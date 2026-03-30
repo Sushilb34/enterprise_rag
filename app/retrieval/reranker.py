@@ -1,4 +1,5 @@
 from typing import List
+
 from langchain_core.documents import Document
 from sentence_transformers import CrossEncoder
 
@@ -59,9 +60,12 @@ class CrossEncoderReranker:
 
             top_docs.append(doc)
 
+        docs_content = [doc.page_content for doc in top_docs]
+
         logger.info(
             f"Reranking complete | returned={len(top_docs)} | "
-            f"top_rerank_score={top_docs[0].metadata.get('rerank_score', 0.0):.4f}"
+            f"top_rerank_score={top_docs[0].metadata.get('rerank_score', 0.0):.4f} | "
+            f"docs_content={docs_content[:100]}"
         )
 
         return top_docs

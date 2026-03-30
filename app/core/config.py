@@ -36,6 +36,7 @@ class Settings(BaseSettings):
 
     # Data
     DATA_DIR: str
+    EVAL_RAGAS_PATH: str
 
     class Config:
         env_file = ".env"

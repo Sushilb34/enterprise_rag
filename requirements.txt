@@ -13,6 +13,11 @@ rank-bm25
 scikit-learn
 tqdm
 fastapi
+pandas
+datasets
+ragas
+openpyxl
+einops
 uvicorn
 rich
 loguru

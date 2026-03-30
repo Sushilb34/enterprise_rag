@@ -20,7 +20,7 @@ class AnswerGuardrail:
             "not present in the documents"
         ]
 
-        self.min_answer_length = 30  # configurable later
+        self.min_answer_length = 1  # configurable later
 
     def apply(self, answer: str, docs: List[Document]) -> Tuple[str, bool]:
         """

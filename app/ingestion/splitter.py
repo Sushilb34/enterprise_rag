@@ -2,6 +2,8 @@ from typing import List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
+import tiktoken
+
 from app.core.config import get_settings
 from app.core.logger import get_logger
 
@@ -11,7 +13,7 @@ settings = get_settings()
 
 class DocumentSplitter:
     """
-    Enterprise Recursive Text Splitter
+    Enterprise Recursive Text Splitter (token-based)
 
     Responsibilities:
     - Split documents into manageable chunks
@@ -23,15 +25,20 @@ class DocumentSplitter:
     def __init__(self):
         self.chunk_size = settings.CHUNK_SIZE
         self.chunk_overlap = settings.CHUNK_OVERLAP
+        encoding = tiktoken.get_encoding("cl100k_base")
+
+        def token_length(text: str) -> int:
+            return len(encoding.encode(text))
 
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            separators=["\n\n", "\n", ".", " ", ""],
+            length_function=token_length,
+            separators=["\n\n", "\n", ".", " ",""],
         )
 
         logger.info(
-            f"Splitter initialized | chunk_size={self.chunk_size} | overlap={self.chunk_overlap}"
+            f"Splitter initialized | chunk_size={self.chunk_size} | overlap={self.chunk_overlap} | token-based"
         )
 
     def split(self, documents: List[Document]) -> List[Document]:

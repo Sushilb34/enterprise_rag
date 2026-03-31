@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List
+
 from langchain_core.documents import Document
-from pypdf import PdfReader
+from langchain_community.document_loaders import PyMuPDFLoader
 
 from app.core.logger import get_logger
 
@@ -11,7 +12,7 @@ logger = get_logger()
 class PDFLoader:
     """
     Enterprise PDF Loader
- 
+
     Responsibilities:
     - Load PDFs from directory
     - Extract page-wise text
@@ -38,24 +39,22 @@ class PDFLoader:
         for pdf_path in pdf_files:
             try:
                 logger.info(f"Processing file: {pdf_path.name}")
-                reader = PdfReader(pdf_path)
+                loader = PyMuPDFLoader(str(pdf_path))
+                pages = loader.load() # return list of document objects
 
-                for page_number, page in enumerate(reader.pages):
-                    text = page.extract_text()
-
-                    if not text or not text.strip():
+                for page_number, page in enumerate(pages, start=1):
+                    if not page.page_content or not page.page_content.strip():
                         continue
 
-                    doc = Document(
-                        page_content=text,
-                        metadata={
+
+                    page.metadata.update({
                             "file_name": pdf_path.name,
-                            "page_number": page_number + 1,
+                            "page_number": page_number,
                             "source": str(pdf_path.resolve()),
-                        },
+                        }
                     )
 
-                    documents.append(doc)
+                    documents.append(page)
 
                 logger.info(f"Completed file: {pdf_path.name}")
 

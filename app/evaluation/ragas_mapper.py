@@ -22,9 +22,16 @@ class RAGASMapper:
         Convert a single RAG response into RAGAS expected format.
         """
 
-        contexts = [
-            doc.page_content for doc in documents if doc.page_content
-        ]
+        contexts = []
+        for doc in documents:
+            if hasattr(doc, "page_content"):
+                contexts.append(doc.page_content)
+            elif hasattr(doc, "content"):
+                contexts.append(doc.content)
+            elif hasattr(doc, "text"):
+                contexts.append(doc.text)
+            else:
+                contexts.append(str(doc))
 
         return {
             "question": query,

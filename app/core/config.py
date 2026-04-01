@@ -37,6 +37,45 @@ class Settings(BaseSettings):
     # Data
     DATA_DIR: str
     EVAL_RAGAS_PATH: str
+    RAGAS_SLEEP_SECONDS: int
+    RAGAS_EMBEDDING_MODEL: str
+
+    # ============================================================
+    # Crawl4AI Website Ingestion Settings
+    # ============================================================
+
+    # Root website
+    CRAWL_BASE_URL: str = "https://quickfoxconsulting.com/"
+
+    # Allowed domains safety (prevents crawling external sites)
+    CRAWL_ALLOWED_DOMAINS: list[str] = ["quickfoxconsulting.com"]
+
+    # Crawl limits
+    CRAWL_MAX_DEPTH: int = 3
+    CRAWL_MAX_PAGES: int = 200
+
+    # Respect robots.txt (legal/ethical crawling)
+    CRAWL_RESPECT_ROBOTS_TXT: bool = True
+
+    # URL discovery strategy
+    CRAWL_USE_SITEMAP: bool = True
+    CRAWL_SITEMAP_URL: str | None = None
+    CRAWL_DISCOVER_INTERNAL_LINKS: bool = True
+
+    # Request behaviour
+    CRAWL_REQUEST_DELAY: float = 1.5
+    CRAWL_TIMEOUT: int = 30
+
+    # Content extraction
+    CRAWL_REMOVE_NAV_FOOTER: bool = True
+    CRAWL_REMOVE_DUPLICATES: bool = True
+
+    # Export options
+    CRAWL_EXPORT_MARKDOWN: bool = True
+    CRAWL_EXPORT_PDF: bool = True
+
+    # Safety sleep (prevents rate limits / blocking)
+    CRAWL_SLEEP_BETWEEN_PAGES: float = 2.0
 
     class Config:
         env_file = ".env"

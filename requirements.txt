@@ -21,3 +21,4 @@ einops
 uvicorn
 rich
 loguru
+crawl4ai

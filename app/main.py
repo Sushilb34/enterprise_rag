@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from app.core.logger import get_logger
 from app.evaluation.eval_logger import EvaluationLogger
 from app.guardrails.answer_guard import AnswerGuardrail
-from app.ingestion.loader import PDFLoader
+from app.ingestion.loader import DocumentLoader
 from app.ingestion.splitter import DocumentSplitter
 from app.llm.llm_provider import LLMProvider
 from app.retrieval.reranker import CrossEncoderReranker
@@ -27,7 +27,7 @@ class EnterpriseRAG:
 
     def __init__(self):
         logger.info("Initializing Enterprise RAG system...")
-        self.loader = PDFLoader()
+        self.loader = DocumentLoader()
         self.splitter = DocumentSplitter()
         self.llm = LLMProvider()
         self.retriever = None
@@ -43,8 +43,8 @@ class EnterpriseRAG:
         """
         logger.info("Starting ingestion process...")
 
-        # 1. Load PDFs
-        docs = self.loader.load_pdfs()
+        # 1. Load documents (PDFs and Markdown files)
+        docs = self.loader.load()
         if not docs:
             logger.warning("No PDFs found for ingestion.")
             return
@@ -125,7 +125,7 @@ class EnterpriseRAG:
 # Optional standalone test
 if __name__ == "__main__":
     rag = EnterpriseRAG()
-    if not rag.is_index_ready():
+    if not rag.():
         rag.ingest_documents()
 
     while True:

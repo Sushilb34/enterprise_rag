@@ -92,7 +92,7 @@ class EnterpriseRAG:
         answer = self.llm.generate_answer(query, reranked_docs)
         answer, guardrail_triggered = self.answer_guardrail.apply(
             answer, reranked_docs
-        )    
+        )
 
         llm_time = time.perf_counter() - llm_start
 
@@ -125,7 +125,7 @@ class EnterpriseRAG:
 # Optional standalone test
 if __name__ == "__main__":
     rag = EnterpriseRAG()
-    if not rag.():
+    if not rag.is_index_ready():
         rag.ingest_documents()
 
     while True:

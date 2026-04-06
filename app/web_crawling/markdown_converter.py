@@ -63,7 +63,7 @@ class MarkdownConverter:
             word_count = len(line.split())
 
             # If many links and little text → likely menu/footer
-            if link_count > 2 and word_count < 50:
+            if link_count > 2 and word_count < 20:
                 continue
 
             cleaned.append(line)
@@ -102,6 +102,54 @@ class MarkdownConverter:
         # remove excessive blank lines
         md = re.sub(r"\n\s*\n\s*\n+", "\n\n", md)
 
+        return md.strip()
+    
+    def _remove_frontmatter_and_timestamps(self, md: str) -> str:
+        # Remove YAML frontmatter
+        md = re.sub(r"^---.*?---\n", "", md, flags=re.DOTALL)
+        # Remove ISO timestamps
+        md = re.sub(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+", "", md)
+        return md
+    
+    def _normalize_headers(self, md: str) -> str:
+        # Remove repeated headers with minor changes
+        seen = set()
+        lines = []
+        for line in md.split("\n"):
+            if line.startswith("## "):
+                key = line.strip().lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+            lines.append(line)
+        return "\n".join(lines)
+    
+    def _remove_sections_by_header(self, md: str, headers: List[str]) -> str:
+        """Remove sections starting with specified headers."""
+        lines = md.split("\n")
+        cleaned = []
+        skip = False
+
+        for line in lines:
+            if any(line.startswith(h) for h in headers):
+                skip = True
+            if line.startswith("## ") or line.startswith("### "):
+                skip = False  # stop skipping at next header
+            if not skip:
+                cleaned.append(line)
+
+        return "\n".join(cleaned)
+    
+    # FULL CLEAN PIPELINE
+    def _full_clean(self, md: str) -> str:
+        md = self._clean_markdown(md)
+        md = self._remove_frontmatter_and_timestamps(md)
+        md = self._normalize_headers(md)
+        md = self._remove_sections_by_header(md, headers=["## Navigation", "## Footer", "## Menu", "## References", "## Leave a Reply"])
+        # optional: collapse multiple spaces
+        md = "\n".join([re.sub(r"\s+", " ", line) for line in md.split("\n")])
+        # Remove excessive blank lines
+        md = re.sub(r"\n\s*\n\s*\n+", "\n\n", md)
         return md.strip()
     
     # ---------------------------------------------------------

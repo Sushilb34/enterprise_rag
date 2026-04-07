@@ -1,3 +1,4 @@
+import torch
 from typing import List
 
 from langchain_core.documents import Document
@@ -28,7 +29,7 @@ class CrossEncoderReranker:
 
         self.model = CrossEncoder(
             self.model_name,
-            device="cpu"  # change to "cuda" if GPU available
+            device="cuda" if torch.cuda.is_available() else "cpu"
         )
 
         logger.info("Reranker model loaded successfully.")
@@ -46,7 +47,12 @@ class CrossEncoderReranker:
 
         pairs = [(query, doc.page_content) for doc in documents]
 
-        scores = self.model.predict(pairs)
+        scores = self.model.predict(
+            pairs,
+            batch_size=32,
+            show_progress_bar=False,
+            convert_to_numpy=True
+        )
 
         scored_docs = list(zip(documents, scores))
         scored_docs.sort(key=lambda x: x[1], reverse=True)

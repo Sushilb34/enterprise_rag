@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Enterprise RAG Chat</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f6fb;
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 { text-align:center; }
+
+    #chat {
+      background: white;
+      height: 500px;
+      overflow-y: auto;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .msg {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 75%;
+    }
+
+    .user {
+      background: #dbeafe;
+      margin-left: auto;
+    }
+
+    .bot {
+      background: #e5e7eb;
+    }
+
+    .sources {
+      font-size: 12px;
+      margin-top: 5px;
+      color: #555;
+    }
+
+    #inputArea {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px 18px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #reindexStatus { margin-top:10px; }
+  </style>
+</head>
+<body>
+
+<h1>🤖 Enterprise RAG Assistant</h1>
+
+<div id="chat"></div>
+
+<div id="inputArea">
+  <input id="question" placeholder="Ask about Quickfox..." />
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<br>
+<button onclick="reindex()">Reindex Documents</button>
+<p id="reindexStatus"></p>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+const chatDiv = document.getElementById("chat");
+
+function addMessage(text, className, sources=[]) {
+  const msg = document.createElement("div");
+  msg.className = "msg " + className;
+  msg.innerHTML = text;
+
+  if (sources.length > 0) {
+    const src = document.createElement("div");
+    src.className = "sources";
+    src.innerHTML = "<b>Sources:</b><br>" +
+      sources.map(s => "• " + s.file_name).join("<br>");
+    msg.appendChild(src);
+  }
+
+  chatDiv.appendChild(msg);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById("question");
+  const question = input.value;
+  if (!question) return;
+
+  addMessage(question, "user");
+  input.value = "";
+
+  addMessage("⏳ Thinking...", "bot");
+
+  const response = await fetch(API_BASE + "/query/", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({query: question})
+  });
+
+  const data = await response.json();
+
+  chatDiv.removeChild(chatDiv.lastChild);
+  addMessage(data.answer, "bot", data.sources);
+}
+
+async function reindex() {
+  document.getElementById("reindexStatus").innerHTML="Reindexing...";
+  await fetch(API_BASE + "/reindex/", {method:"POST"});
+  document.getElementById("reindexStatus").innerHTML="✅ Reindex done!";
+}
+</script>
+
+</body>
+</html>

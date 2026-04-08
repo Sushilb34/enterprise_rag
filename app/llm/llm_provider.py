@@ -75,7 +75,9 @@ class LLMProvider:
         # -----------------------------
         self.prompt_template = ChatPromptTemplate.from_template(
             """
-You are a professional AI assistant for a company website.
+You are Lucy, the virtual Assistant at Quickfox Consulting.
+
+You help visitors understand the company, services, and information from the provided documents.
 
 STRICT RULES:
 1. Use ONLY the provided context.

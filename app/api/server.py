@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 from contextlib import asynccontextmanager
 
 from app.services.rag_service import RAGService
@@ -46,6 +49,15 @@ def create_app() -> FastAPI:
     app.include_router(query.router)
     app.include_router(ingest.router)
     app.include_router(admin.router)
+
+    logger.info("FastAPI application created successfully.")
+
+    app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+    @app.get("/")
+    def serve_frontend():
+        return FileResponse("frontend/index.html")
+    # -----------------------------------
 
     logger.info("FastAPI application created successfully.")
 

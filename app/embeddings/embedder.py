@@ -1,3 +1,4 @@
+import torch
 from typing import List
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -11,7 +12,7 @@ settings = get_settings()
 class EmbeddingModel:
     """
     Enterprise Embedding Layer
- 
+
     Responsibilities:
     - Load embedding model from config
     - Provide document embedding
@@ -27,7 +28,7 @@ class EmbeddingModel:
         self.model = HuggingFaceEmbeddings(
             model_name=self.model_name,
             model_kwargs={
-                "device": "cpu", # Change to 'cuda' if GPU available
+                "device": "cuda" if torch.cuda.is_available() else "cpu",
                 "trust_remote_code": True
             },
             encode_kwargs={"normalize_embeddings": True} # Normalize for cosine similarity

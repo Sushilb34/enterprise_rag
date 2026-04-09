@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends
-
 from app.schemas.query import QueryRequest, QueryResponse
-from app.services.rag_service import RAGService
-from app.api.dependencies import get_rag_service
+from app.api.dependencies import get_intent_router
 from app.core.logger import get_logger
+from app.intent_router.router import IntentRouter
 
 logger = get_logger()
 
@@ -12,27 +11,23 @@ router = APIRouter(
     tags=["RAG Query"]
 )
 
-
 @router.post("/", response_model=QueryResponse)
 def query_rag(
     request: QueryRequest,
-    rag_service: RAGService = Depends(get_rag_service)
+    intent_router: IntentRouter = Depends(get_intent_router)
 ):
     """
-    Query the Enterprise RAG system.
+    Query the Enterprise RAG system via IntentRouter.
 
     This endpoint:
-    1. Receives a user question
-    2. Retrieves relevant documents
-    3. Generates an answer using the LLM
+    1. Detects the intent of the query (small-talk or RAG)
+    2. Routes small-talk queries to LLM directly
+    3. Routes knowledge queries to RAG pipeline
     4. Returns answer + sources
     """
-
     logger.info(f"API Query Received: {request.query}")
 
-    answer, sources = rag_service.query(request.query)
+    # Step 1: Let IntentRouter handle the query
+    response = intent_router.handle_query(request.query)
 
-    return QueryResponse(
-        answer=answer,
-        sources=sources
-    )
+    return response

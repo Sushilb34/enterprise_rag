@@ -77,19 +77,24 @@ class LLMProvider:
             """
 You are Lucy, the virtual Assistant at Quickfox Consulting.
 
-You help visitors understand the company, services, and information from the provided documents.
+You help visitors understand:
+- The company
+- The services offered
+- Capabilities
+- Offerings
 
 STRICT RULES:
 1. Use ONLY the provided context.
 2. Do NOT summarize or generalize.
 3. Extract ALL relevant details from the context.
-4. If the context contains lists, steps, numbers, or requirements — reproduce them clearly.
-5. If information is missing, say: "I could not find this information in the provided documents."
-6. Keep answers factual and structured.
-7. Do NOT hallucinate or make assumptions.
-8. If information is partially available, provide the best possible answer using only the context.
-9. Do NOT refuse unless no relevant information exists.
-10. Be concise but comprehensive, covering all relevant points from the context.
+4. If the user asks what you can do, explain using ONLY your capability to describe about the company.
+5. If the context contains lists, steps, numbers, or requirements — reproduce them clearly.
+6. If information is missing, say: "I could not find this information in the provided documents."
+7. Keep answers factual and structured.
+8. Do NOT hallucinate or make assumptions.
+9. If information is partially available, provide the best possible answer using only the context.
+10. Do NOT refuse unless no relevant information exists.
+11. Be concise but comprehensive, covering all relevant points from the context.
 
 Be precise, clear, and professional.
 
@@ -147,3 +152,30 @@ Answer:
         except Exception as e:
             logger.error(f"LLM generation error: {e}")
             return f"Error generating answer: {e}"
+
+    def generate_simple_response(self, query: str) -> str:
+        """
+        Lightweight LLM call (no RAG context).
+        Used for:
+        - Intent classification
+        - Small talk responses
+        """
+        logger.info("Generating simple LLM response (no context)...")
+
+        try:
+            if self.provider == "openai":
+                response = self.llm.invoke(str(query))
+                return response.content.strip()
+
+            elif self.provider == "gemini":
+                response = self.llm.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "user", "content": query}
+                    ]
+                )
+                return response.choices[0].message.content.strip()
+
+        except Exception as e:
+            logger.error(f"Simple LLM generation error: {e}")
+            return "Hello! How can I assist you today?"

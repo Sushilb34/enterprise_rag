@@ -19,6 +19,10 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Enterprise RAG system...")
 
     rag_service = RAGService()
+    
+    # Pre-initialize retriever (loads heavy models)
+    logger.info("Pre-loading RAG models (Retriever/Embeddings)...")
+    rag_service.rag.initialize_retriever()
 
     # store globally
     set_rag_service(rag_service)

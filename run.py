@@ -7,6 +7,10 @@ from app.main import EnterpriseRAG
 logger = get_logger()
 
 
+import io
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 def main():
     parser = argparse.ArgumentParser(
         description="Enterprise RAG System Runner"

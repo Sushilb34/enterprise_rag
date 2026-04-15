@@ -96,7 +96,18 @@ class RAGService:
 
         answer, documents = self.rag.ask_question(question)
 
-        sources = self._extract_sources(documents)
+        # Smart Source Filtering:
+        # Only show sources if the top document has a high enough relevance score.
+        # This prevents showing random sources for simple greetings.
+        sources = []
+        if documents:
+            top_score = documents[0].metadata.get("rerank_score", -99.0)
+            logger.info(f"Top rerank score: {top_score:.4f}")
+            
+            if top_score >= 0.0: # Threshold for ms-marco-MiniLM-L-12-v2
+                sources = self._extract_sources(documents)
+            else:
+                logger.info("Relevance score too low. Hiding sources (likely small talk).")
 
         return answer, sources
     

@@ -1,5 +1,4 @@
 from typing import List
-from dotenv import load_dotenv
 import os
 
 from langchain_core.documents import Document
@@ -8,12 +7,10 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.config import get_settings
 from app.core.logger import get_logger
+from app.llm.local_llm_client import LocalLLMClient
 
 logger = get_logger()
 settings = get_settings()
-
-# Load environment variables
-load_dotenv()
 
 # Try to import Gemini (OpenAI-compatible) client
 try:
@@ -35,68 +32,67 @@ class LLMProvider:
     """
 
     def __init__(self):
-        self.provider = settings.LLM_PROVIDER.lower()
-        self.model_name = settings.LLM_MODEL
-        logger.info(f"Initializing LLM Provider | provider={self.provider}")
-
-        # -----------------------------
-        # OpenAI setup
-        # -----------------------------
-        if self.provider == "openai":
-            logger.info("Initializing OpenAI LLM...")
-            self.llm = ChatOpenAI(
-                model=self.model_name,
-                temperature=settings.LLM_TEMPERATURE,
-                api_key=settings.OPENAI_API_KEY,
+        self.provider = "local" if settings.USE_LOCAL_LLM else settings.LLM_PROVIDER.lower()
+        
+        self.use_local = settings.USE_LOCAL_LLM
+        logger.info(f"Initializing LLM Provider | use_local={self.use_local}")
+        if self.use_local:
+            logger.info("Using Local LLM Client...")
+            self.llm = LocalLLMClient(
+                model_name=settings.LOCAL_LLM_MODEL,
+                api_url=settings.LOCAL_LLM_API_URL,
+                max_tokens=settings.LOCAL_LLM_MAX_TOKENS,
+                temperature=settings.LOCAL_LLM_TEMPERATURE,
             )
-            logger.info("OpenAI LLM initialized successfully.")
-
-        # -----------------------------
-        # Gemini 3 Flash setup
-        # -----------------------------
-        elif self.provider == "gemini":
-            if OpenAI is None:
-                raise ImportError("Please install 'openai' package to use Gemini 3.0 Flash")
-
-            if not settings.GEMINI_API_KEY:
-                raise ValueError("GEMINI_API_KEY not set in .env")
-
-            self.llm = OpenAI(
-                api_key=settings.GEMINI_API_KEY,
-                base_url="https://generativelanguage.googleapis.com/v1beta/",
-            )
-            logger.info("Gemini 3.0 Flash LLM initialized successfully.")
-
+            
         else:
-            raise ValueError(f"Unsupported LLM provider: {self.provider}")
+            self.provider = settings.LLM_PROVIDER.lower()
+            self.model_name = settings.LLM_MODEL
+            logger.info(f"Initializing LLM Provider | provider={self.provider}")
+            # -----------------------------
+            # OpenAI setup
+            # -----------------------------
+            if self.provider == "openai":
+                logger.info("Initializing OpenAI LLM...")
+                self.llm = ChatOpenAI(
+                    model=self.model_name,
+                    temperature=settings.LLM_TEMPERATURE,
+                    api_key=settings.OPENAI_API_KEY,
+                )
+                logger.info("OpenAI LLM initialized successfully.")
+
+            # -----------------------------
+            # Gemini 3 Flash setup
+            # -----------------------------
+            elif self.provider == "gemini":
+                if OpenAI is None:
+                    raise ImportError("Please install 'openai' package to use Gemini 3.0 Flash")
+
+                if not settings.GEMINI_API_KEY:
+                    raise ValueError("GEMINI_API_KEY not set in .env")
+
+                self.llm = OpenAI(
+                    api_key=settings.GEMINI_API_KEY,
+                    base_url="https://generativelanguage.googleapis.com/v1beta/",
+                )
+                logger.info("Gemini 3.0 Flash LLM initialized successfully.")
+
+            else:
+                raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
         # -----------------------------
         # Prompt template
         # -----------------------------
         self.prompt_template = ChatPromptTemplate.from_template(
             """
-You are Lucy, the virtual Assistant at Quickfox Consulting.
+You are Lucy, the virtual assistant at Quickfox Consulting.
 
-You help visitors understand:
-- The company
-- The services offered
-- Capabilities
-- Offerings
-
-STRICT RULES:
-1. Use ONLY the provided context.
-2. Do NOT summarize or generalize.
-3. Extract ALL relevant details from the context.
-4. If the user asks what you can do, explain using ONLY your capability to describe about the company.
-5. If the context contains lists, steps, numbers, or requirements — reproduce them clearly.
-6. If information is missing, say: "I could not find this information in the provided documents."
-7. Keep answers factual and structured.
-8. Do NOT hallucinate or make assumptions.
-9. If information is partially available, provide the best possible answer using only the context.
-10. Do NOT refuse unless no relevant information exists.
-11. Be concise but comprehensive, covering all relevant points from the context.
-
-Be precise, clear, and professional.
+USER GUIDELINES:
+1. GREETING/IDENTITY: If the user is just saying hello, asking who you are, or making small talk, respond professionally and friendly as Lucy.
+2. COMPANY QUESTIONS: If the user asks about Quickfox, its services, or capabilities, use ONLY the provided Context below.
+3. STRICTNESS: If the question is RAG-related but the information is missing from the Context, say: "I could not find this information in the provided documents."
+4. NO HALLUCINATION: Do not make up facts about the company from your own knowledge.
+5. FORMATTING: If the context contains lists or requirements, reproduce them clearly.
 
 Context:
 {context}
@@ -108,7 +104,7 @@ Answer:
 """
         )
 
-    def generate_answer(self, query: str, documents: List[Document]) -> str:
+    def generate_answer(self, query: str, documents: List[Document], stop: list = None) -> str:
         """
         Generate final answer using retrieved context.
         """
@@ -135,7 +131,10 @@ Answer:
         # Call the correct provider
         # -----------------------------
         try:
-            if self.provider == "openai":
+            if self.provider == "local":
+                return self.llm.generate(prompt, stop=stop)
+            
+            elif self.provider == "openai":
                 response = self.llm.invoke(prompt)
                 return response.content
 
@@ -143,7 +142,6 @@ Answer:
                 response = self.llm.chat.completions.create(
                     model=self.model_name,
                     messages=[
-                        {"role": "system", "content": "You are a helpful assistant."},
                         {"role": "user", "content": prompt}
                     ]
                 )
@@ -153,7 +151,7 @@ Answer:
             logger.error(f"LLM generation error: {e}")
             return f"Error generating answer: {e}"
 
-    def generate_simple_response(self, query: str) -> str:
+    def generate_simple_response(self, query: str, stop: list = None) -> str:
         """
         Lightweight LLM call (no RAG context).
         Used for:
@@ -163,7 +161,10 @@ Answer:
         logger.info("Generating simple LLM response (no context)...")
 
         try:
-            if self.provider == "openai":
+            if self.provider == "local":
+                return self.llm.generate(query, stop=stop)
+            
+            elif self.provider == "openai":
                 response = self.llm.invoke(str(query))
                 return response.content.strip()
 

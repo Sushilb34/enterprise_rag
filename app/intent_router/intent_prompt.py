@@ -11,14 +11,27 @@ Classify the user's query into EXACTLY one of these labels:
 - IDENTITY
 - THANKS
 - GOODBYE
-- CAPABILITY (if the user is asking about what you can do or your capabilities)
-- RAG (Retrieval-Augmented Generation for company info)
+- CAPABILITY
+- RAG
 
 Rules:
 1. Respond with **only** the intent label.
 2. Do NOT explain.
 3. Use uppercase letters exactly as above.
 4. Do NOT add extra text.
+
+Examples:
+User Query: "Hello there!"
+Intent: GREETING
+
+User Query: "Who are you?"
+Intent: IDENTITY
+
+User Query: "What can you do for me?"
+Intent: CAPABILITY
+
+User Query: "Tell me about your consulting services"
+Intent: RAG
 
 User Query: "{query}"
 Intent:

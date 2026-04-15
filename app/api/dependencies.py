@@ -1,5 +1,4 @@
 from fastapi import Depends
-from app.intent_router.router import IntentRouter
 from app.services.rag_service import RAGService
 from app.llm.llm_provider import LLMProvider
 
@@ -29,20 +28,8 @@ def get_rag_service() -> RAGService:
 
     return rag_service
 
-# -----------------------------
-# New dependencies for IntentRouter
-# -----------------------------
 def get_llm_provider() -> LLMProvider:
     """
     Returns an initialized LLMProvider.
     """
     return LLMProvider()
-
-def get_intent_router(
-    rag_service: RAGService = Depends(get_rag_service),
-    llm_provider: LLMProvider = Depends(get_llm_provider)
-) -> IntentRouter:
-    """
-    Returns an initialized IntentRouter for FastAPI dependency injection.
-    """
-    return IntentRouter(llm_provider=llm_provider, rag_service=rag_service)

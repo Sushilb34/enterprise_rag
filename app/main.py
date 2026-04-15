@@ -1,4 +1,5 @@
 import time
+import threading
 from typing import List
 
 from langchain_core.documents import Document
@@ -35,7 +36,19 @@ class EnterpriseRAG:
         self.documents: List[Document] = []
         self.answer_guardrail = AnswerGuardrail()
         self.eval_logger = EvaluationLogger()
+        self._retriever_lock = threading.Lock()
         logger.info("Enterprise RAG system initialized.")
+
+    def initialize_retriever(self):
+        """
+        Thread-safe initialization of the hybrid retriever.
+        Loads existing indexes and models into memory/VRAM.
+        """
+        with self._retriever_lock:
+            if self.retriever is None:
+                logger.info("Initializing retriever (loading models and indexes)...")
+                self.retriever = HybridRetriever(None)
+                logger.info("Retriever initialized successfully.")
 
     def ingest_documents(self):
         """
@@ -66,13 +79,7 @@ class EnterpriseRAG:
         3. LLM generation
         """
         if self.retriever is None:
-            # retriever hasn't been set up yet.  Try to load from an existing
-            # vector index on disk rather than re-running the entire ingestion
-            # pipeline; this keeps --query lightweight and avoids duplicates.
-            logger.info("Retriever not initialized, attempting to load existing index.")
-            self.retriever = HybridRetriever(None)
-            if self.retriever is None:
-                raise RuntimeError("Failed to initialize retriever.")
+            self.initialize_retriever()
 
         logger.info(f"Received query: {query}")
         total_start = time.perf_counter()

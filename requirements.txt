@@ -22,3 +22,5 @@ uvicorn
 rich
 loguru
 crawl4ai
+requests
+openai

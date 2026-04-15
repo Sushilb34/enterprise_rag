@@ -1,0 +1,39 @@
+services:
+  vllm-tinyllama:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-tinyllama
+    ports:
+      - "8000:8000"
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+      - VLLM_USE_V1=0
+      - VLLM_NO_USAGE_STATS=1
+    # Nuclear option: bypass all defaults to ensure it runs correctly
+    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+    
+    command:
+      - --model
+      - TinyLlama/TinyLlama-1.1B-Chat-v1.0
+      - --dtype
+      - float16
+      - --max-model-len
+      - "1024"
+      - --gpu-memory-utilization
+      - "0.6"
+      - --enforce-eager
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+
+volumes:
+  huggingface_cache:

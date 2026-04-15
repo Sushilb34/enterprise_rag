@@ -77,6 +77,15 @@ class Settings(BaseSettings):
     # Safety sleep (prevents rate limits / blocking)
     CRAWL_SLEEP_BETWEEN_PAGES: float = 2.0
 
+    # Local LLM Config
+    LOCAL_LLM_MODEL: str
+    LOCAL_LLM_API_URL: str
+    LOCAL_LLM_MAX_TOKENS: int
+    LOCAL_LLM_TEMPERATURE: float
+    # Switch between local and cloud LLM
+    USE_LOCAL_LLM: bool
+
+
     class Config:
         env_file = ".env"
 

@@ -17,11 +17,13 @@ class LocalLLMClient:
         self.max_tokens = max_tokens
         self.temperature = temperature
 
-    def _truncate_prompt(self, prompt: str, max_context: int = 1024) -> str:
+    def _truncate_prompt(self, prompt: str, max_context: int = 16384) -> str:
         """Truncate prompt to fit within the model's max context length."""
         # Rough estimate: 1 token ≈ 4 characters
-        max_input_tokens = max_context - self.max_tokens - 10  # 10 token safety margin
-        max_chars = max_input_tokens * 4
+        # Ensure available_context is positive
+        available_context = max(500, max_context - self.max_tokens - 100)
+        max_chars = available_context * 4
+        
         if len(prompt) > max_chars:
             logger.warning(f"Prompt truncated from {len(prompt)} to {max_chars} chars to fit context window")
             prompt = prompt[:max_chars]
@@ -29,13 +31,26 @@ class LocalLLMClient:
 
     def generate(self, prompt: str, stop: list = None) -> str:
         prompt = self._truncate_prompt(prompt)
-        payload = {
-            "model": self.model_name,
-            "prompt": prompt,
-            "max_tokens": self.max_tokens,
-            "temperature": self.temperature,
-            "stream": False
-        }
+        
+        # Detect endpoint type
+        is_chat = "chat/completions" in self.api_url
+        
+        if is_chat:
+            payload = {
+                "model": self.model_name,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "stream": False
+            }
+        else:
+            payload = {
+                "model": self.model_name,
+                "prompt": prompt,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "stream": False
+            }
         
         if stop:
             payload["stop"] = stop
@@ -44,8 +59,12 @@ class LocalLLMClient:
         response.raise_for_status()
         data = response.json()
 
-        # vLLM/OpenAI format returns result in choices[0][text]
-        if "choices" in data and len(data["choices"]) > 0:
-            return data["choices"][0].get("text", "")
+        # Handle Chat vs Completion response formats
+        if is_chat:
+            if "choices" in data and len(data["choices"]) > 0:
+                return data["choices"][0].get("message", {}).get("content", "")
+        else:
+            if "choices" in data and len(data["choices"]) > 0:
+                return data["choices"][0].get("text", "")
         
-        return data.get("response", "") # Fallback for Ollama if needed
+        return data.get("response", "") # Fallback

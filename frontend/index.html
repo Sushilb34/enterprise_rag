@@ -1,133 +1,422 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Enterprise RAG Chat</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #f4f6fb;
-      max-width: 900px;
-      margin: auto;
-      padding: 20px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise RAG | Quickfox AI</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-main: #f8fafc;
+            --bg-chat: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --bot-msg: #f1f5f9;
+            --user-msg: #2563eb;
+            --think-bg: #fdfdfd;
+            --think-border: #94a3b8;
+        }
 
-    h1 { text-align:center; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
 
-    #chat {
-      background: white;
-      height: 500px;
-      overflow-y: auto;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-    .msg {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 8px;
-      max-width: 75%;
-    }
+        /* Layout */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
 
-    .user {
-      background: #dbeafe;
-      margin-left: auto;
-    }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
 
-    .bot {
-      background: #e5e7eb;
-    }
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    .sources {
-      font-size: 12px;
-      margin-top: 5px;
-      color: #555;
-    }
+        /* Chat Area */
+        #chat {
+            flex: 1;
+            background: var(--bg-chat);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border: 1px solid var(--border);
+            scroll-behavior: smooth;
+        }
 
-    #inputArea {
-      margin-top: 15px;
-      display: flex;
-      gap: 10px;
-    }
+        /* Message Styling */
+        .msg-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+        }
 
-    input {
-      flex: 1;
-      padding: 12px;
-      font-size: 16px;
-    }
+        .user-wrapper { align-self: flex-end; }
+        .bot-wrapper { align-self: flex-start; }
 
-    button {
-      padding: 12px 18px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+        .msg {
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.6;
+            position: relative;
+        }
 
-    #reindexStatus { margin-top:10px; }
-  </style>
+        .user {
+            background: var(--user-msg);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot {
+            background: var(--bot-msg);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Think Block Styling */
+        .think-container {
+            margin-bottom: 12px;
+            border: 1px solid var(--think-border);
+            border-radius: 12px;
+            background: var(--think-bg);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .think-header {
+            padding: 10px 14px;
+            background: #f8fafc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid transparent;
+        }
+
+        .think-container.open .think-header {
+            border-bottom-color: var(--border);
+        }
+
+        .think-header:hover {
+            background: #f1f5f9;
+        }
+
+        .think-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .think-container.open .think-content {
+            padding: 14px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Sources */
+        .sources-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .source-tag {
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(37, 99, 235, 0.15);
+        }
+
+        /* Markdown Overrides */
+        .bot p { margin-bottom: 10px; }
+        .bot p:last-child { margin-bottom: 0; }
+        .bot ul, .bot ol { margin-left: 20px; margin-bottom: 10px; }
+        .bot h3 { font-size: 1.1rem; margin: 15px 0 8px; }
+
+        /* Input Area */
+        .input-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            background: white;
+            padding: 8px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+
+        #question {
+            flex: 1;
+            border: none;
+            padding: 12px 18px;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        button.send-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button.send-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        button.utility-btn {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button.utility-btn:hover {
+            background: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        .footer-tools {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #reindexStatus {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Scrollbar */
+        #chat::-webkit-scrollbar { width: 6px; }
+        #chat::-webkit-scrollbar-track { background: transparent; }
+        #chat::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
 </head>
 <body>
 
-<h1>🤖 Enterprise RAG Assistant</h1>
+<div class="container">
+    <header>
+        <h1>🤖 Enterprise RAG Assistant</h1>
+        <div id="reindexStatus"></div>
+    </header>
 
-<div id="chat"></div>
+    <div id="chat">
+        <div class="msg-wrapper bot-wrapper">
+            <div class="msg bot">
+                Hello! I am Lucy, your Quickfox virtual assistant. How can I help you today?
+            </div>
+        </div>
+    </div>
 
-<div id="inputArea">
-  <input id="question" placeholder="Ask about Quickfox..." />
-  <button onclick="sendMessage()">Send</button>
+    <div class="input-container">
+        <input type="text" id="question" placeholder="Ask about services, documents, or data..." autocomplete="off">
+        <button class="send-btn" onclick="sendMessage()">Send</button>
+    </div>
+
+    <div class="footer-tools">
+        <button class="utility-btn" onclick="reindex()">Reindex Documents</button>
+    </div>
 </div>
 
-<br>
-<button onclick="reindex()">Reindex Documents</button>
-<p id="reindexStatus"></p>
-
 <script>
-const API_BASE = "http://127.0.0.1:8001";
-const chatDiv = document.getElementById("chat");
+    const API_BASE = "http://127.0.0.1:8001";
+    const chatDiv = document.getElementById("chat");
+    const inputField = document.getElementById("question");
 
-function addMessage(text, className, sources=[]) {
-  const msg = document.createElement("div");
-  msg.className = "msg " + className;
-  msg.innerHTML = text;
+    // Configure marked to be safe
+    marked.setOptions({
+        gfm: true,
+        breaks: true
+    });
 
-  if (sources.length > 0) {
-    const src = document.createElement("div");
-    src.className = "sources";
-    src.innerHTML = "<b>Sources:</b><br>" +
-      sources.map(s => "• " + s.file_name).join("<br>");
-    msg.appendChild(src);
-  }
+    function toggleThink(btn) {
+        const container = btn.closest('.think-container');
+        container.classList.toggle('open');
+        const label = container.querySelector('.think-label');
+        label.textContent = container.classList.contains('open') ? 'Hide Thought Process' : 'Show Thought Process';
+    }
 
-  chatDiv.appendChild(msg);
-  chatDiv.scrollTop = chatDiv.scrollHeight;
-}
+    function parseBotResponse(text) {
+        const thinkRegex = /<think>([\s\S]*?)<\/think>/;
+        const match = text.match(thinkRegex);
+        
+        let thought = null;
+        let answer = text;
 
-async function sendMessage() {
-  const input = document.getElementById("question");
-  const question = input.value;
-  if (!question) return;
+        if (match) {
+            thought = match[1].trim();
+            answer = text.replace(thinkRegex, '').trim();
+        }
 
-  addMessage(question, "user");
-  input.value = "";
+        return { thought, answer };
+    }
 
-  addMessage("⏳ Thinking...", "bot");
+    function addMessage(rawText, className, sources = []) {
+        const wrapper = document.createElement("div");
+        wrapper.className = `msg-wrapper ${className}-wrapper`;
 
-  const response = await fetch(API_BASE + "/query/", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({query: question})
-  });
+        const msg = document.createElement("div");
+        msg.className = "msg " + className;
 
-  const data = await response.json();
+        if (className === 'bot') {
+            const { thought, answer } = parseBotResponse(rawText);
+            
+            let html = "";
+            
+            if (thought) {
+                html += `
+                <div class="think-container">
+                    <div class="think-header" onclick="toggleThink(this)">
+                        <span>🔍 <span class="think-label">Show Thought Process</span></span>
+                        <span>▼</span>
+                    </div>
+                    <div class="think-content">${marked.parse(thought)}</div>
+                </div>`;
+            }
 
-  chatDiv.removeChild(chatDiv.lastChild);
-  addMessage(data.answer, "bot", data.sources);
-}
+            html += marked.parse(answer);
+            msg.innerHTML = html;
 
-async function reindex() {
-  document.getElementById("reindexStatus").innerHTML="Reindexing...";
-  await fetch(API_BASE + "/reindex/", {method:"POST"});
-  document.getElementById("reindexStatus").innerHTML="✅ Reindex done!";
-}
+            if (sources && sources.length > 0) {
+                const srcContainer = document.createElement("div");
+                srcContainer.className = "sources-list";
+                sources.forEach(s => {
+                    const span = document.createElement("span");
+                    span.className = "source-tag";
+                    span.textContent = `📄 ${s.file_name}`;
+                    srcContainer.appendChild(span);
+                });
+                msg.appendChild(srcContainer);
+            }
+        } else {
+            msg.textContent = rawText;
+        }
+
+        wrapper.appendChild(msg);
+        chatDiv.appendChild(wrapper);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const question = inputField.value.trim();
+        if (!question) return;
+
+        addMessage(question, "user");
+        inputField.value = "";
+
+        // Add loading state
+        const loadingWrapper = document.createElement("div");
+        loadingWrapper.className = "msg-wrapper bot-wrapper";
+        loadingWrapper.innerHTML = `
+            <div class="msg bot">
+                <span style="color: #64748b">⏳ Consulting documents...</span>
+            </div>
+        `;
+        chatDiv.appendChild(loadingWrapper);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+
+        try {
+            const response = await fetch(API_BASE + "/query/", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({query: question})
+            });
+
+            const data = await response.json();
+            chatDiv.removeChild(loadingWrapper);
+            addMessage(data.answer, "bot", data.sources);
+        } catch (err) {
+            chatDiv.removeChild(loadingWrapper);
+            addMessage("⚠️ Error: Could not connect to the assistant server.", "bot");
+        }
+    }
+
+    async function reindex() {
+        const status = document.getElementById("reindexStatus");
+        status.innerHTML = "⏳ Reindexing...";
+        try {
+            await fetch(API_BASE + "/reindex/", {method:"POST"});
+            status.innerHTML = "✅ Knowledge base updated!";
+            setTimeout(() => status.innerHTML = "", 3000);
+        } catch (err) {
+            status.innerHTML = "❌ Reindex failed.";
+        }
+    }
+
+    // Support Enter Key
+    inputField.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
 </script>
 
 </body>

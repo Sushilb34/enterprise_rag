@@ -1,4 +1,5 @@
 import requests
+import re
 from app.core.config import get_settings
 from app.core.logger import get_logger
 logger = get_logger()
@@ -16,6 +17,23 @@ class LocalLLMClient:
         self.api_url = api_url
         self.max_tokens = max_tokens
         self.temperature = temperature
+
+    def _clean_response(self, text: str) -> str:
+        """
+        Remove <think> blocks from LLM response.
+        Handles:
+        - Multiple <think> blocks
+        - Unclosed <think> tags (matches until end of string)
+        - Multi-line content
+        """
+        if not text:
+            return ""
+        
+        # Regex to match <think> and everything until </think> or end of string
+        # Non-greedy .*? ensures we match blocks one by one
+        pattern = r'<think>.*?(?:</think>|$)'
+        cleaned = re.sub(pattern, '', text, flags=re.DOTALL)
+        return cleaned.strip()
 
     def _truncate_prompt(self, prompt: str, max_context: int = 16384) -> str:
         """Truncate prompt to fit within the model's max context length."""
@@ -59,12 +77,19 @@ class LocalLLMClient:
         response.raise_for_status()
         data = response.json()
 
+        text = ""
+
         # Handle Chat vs Completion response formats
         if is_chat:
             if "choices" in data and len(data["choices"]) > 0:
-                return data["choices"][0].get("message", {}).get("content", "")
+                text = data["choices"][0].get("message", {}).get("content", "")
         else:
             if "choices" in data and len(data["choices"]) > 0:
-                return data["choices"][0].get("text", "")
+                text = data["choices"][0].get("text", "")
         
-        return data.get("response", "") # Fallback
+        # If still empty, try fallback
+        if not text:
+            text = data.get("response", "")
+
+        # Clean response (remove <think> tags) before returning
+        return self._clean_response(text)

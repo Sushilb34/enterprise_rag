@@ -25,14 +25,16 @@ class CrossEncoderReranker:
         self.model_name = settings.RERANKER_MODEL
         self.top_k = settings.RERANK_TOP_K
 
-        logger.info(f"Loading reranker model: {self.model_name}")
+        # Determine device — prefer GPU to offload from system RAM
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Loading reranker model: {self.model_name} on device: {self.device}")
 
         self.model = CrossEncoder(
             self.model_name,
-            device="cuda" if torch.cuda.is_available() else "cpu"
+            device=self.device
         )
 
-        logger.info("Reranker model loaded successfully.")
+        logger.info(f"Reranker model loaded successfully on {self.device}.")
 
     def rerank(self, query: str, documents: List[Document]) -> List[Document]:
         """

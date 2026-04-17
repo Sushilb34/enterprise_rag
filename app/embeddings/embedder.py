@@ -1,3 +1,8 @@
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
+os.environ["HF_HOME"] = "C:/hf_cache"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import torch
 from typing import List
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -23,18 +28,20 @@ class EmbeddingModel:
     def __init__(self):
         self.model_name = settings.EMBEDDING_MODEL
 
-        logger.info(f"Loading embedding model: {self.model_name}")
+        # Determine device — prefer GPU to offload from system RAM
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Loading embedding model: {self.model_name} on device: {self.device}")
 
         self.model = HuggingFaceEmbeddings(
             model_name=self.model_name,
             model_kwargs={
-                "device": "cuda" if torch.cuda.is_available() else "cpu",
-                "trust_remote_code": True
+                "device": self.device,
+                "trust_remote_code": True,
             },
             encode_kwargs={"normalize_embeddings": True} # Normalize for cosine similarity
         )
 
-        logger.info("Embedding model loaded successfully.")
+        logger.info(f"Embedding model loaded successfully on {self.device}.")
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         logger.info(f"Embedding {len(texts)} documents.")

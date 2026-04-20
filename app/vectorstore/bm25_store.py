@@ -137,3 +137,9 @@ class BM25Store:
         except Exception as e:
             logger.error(f"Failed to load BM25 index: {e}")
             raise
+
+    def is_empty(self) -> bool:
+        """
+        Check if the BM25 index contains any documents.
+        """
+        return self.bm25 is None or len(self.documents) == 0

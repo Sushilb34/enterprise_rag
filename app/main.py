@@ -6,7 +6,6 @@ from langchain_core.documents import Document
 
 from app.core.logger import get_logger
 from app.evaluation.eval_logger import EvaluationLogger
-from app.guardrails.answer_guard import AnswerGuardrail
 from app.ingestion.loader import DocumentLoader
 from app.ingestion.splitter import DocumentSplitter
 from app.llm.llm_provider import LLMProvider
@@ -34,7 +33,6 @@ class EnterpriseRAG:
         self.retriever = None
         self.reranker = CrossEncoderReranker()
         self.documents: List[Document] = []
-        self.answer_guardrail = AnswerGuardrail()
         self.eval_logger = EvaluationLogger()
         self._retriever_lock = threading.Lock()
         logger.info("Enterprise RAG system initialized.")
@@ -66,10 +64,17 @@ class EnterpriseRAG:
         chunks = self.splitter.split(docs)
         self.documents = chunks
 
-        # 3. Initialize hybrid retriever
-        self.retriever = HybridRetriever(chunks)
+        # 3. Add to existing retriever or create new one
+        # This prevents double-loading heavy models into RAM/VRAM
+        if self.retriever:
+            logger.info("Adding documents to existing retriever...")
+            self.retriever.add_documents(chunks)
+        else:
+            logger.info("Initializing new retriever for ingestion...")
+            self.retriever = HybridRetriever(chunks)
 
         logger.info(f"Ingestion completed | total chunks={len(chunks)}")
+
 
     def ask_question(self, query: str) -> str:
         """
@@ -97,10 +102,7 @@ class EnterpriseRAG:
         # 3. Generate answer
         llm_start = time.perf_counter()
         answer = self.llm.generate_answer(query, reranked_docs)
-        answer, guardrail_triggered = self.answer_guardrail.apply(
-            answer, reranked_docs
-        )
-
+        
         llm_time = time.perf_counter() - llm_start
 
         total_time = time.perf_counter() - total_start
@@ -122,17 +124,25 @@ class EnterpriseRAG:
             "reranked_docs": len(reranked_docs),
             "top_rerank_score": reranked_docs[0].metadata.get("rerank_score", 0.0) if reranked_docs else 0.0,
             "answer_length": len(answer.split()),
-            "guardrail_triggered": guardrail_triggered,
             "latency": round(total_time, 3)
         }
         self.eval_logger.log(eval_data)
         return answer , reranked_docs
 
+    def is_index_empty(self) -> bool:
+        """
+        Check if the retrieval system has any documents.
+        """
+        if self.retriever is None:
+            self.initialize_retriever()
+        
+        return self.retriever.is_empty()
+
 
 # Optional standalone test
 if __name__ == "__main__":
     rag = EnterpriseRAG()
-    if not rag.is_index_ready():
+    if rag.is_index_empty():
         rag.ingest_documents()
 
     while True:

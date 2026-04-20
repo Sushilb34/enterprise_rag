@@ -25,8 +25,14 @@ async def lifespan(app: FastAPI):
     logger.info("Pre-loading RAG models (Retriever/Embeddings)...")
     rag_service.rag.initialize_retriever()
 
+    # 3. Auto-ingest if index is empty
+    if rag_service.rag.is_index_empty():
+        logger.info("RAG index is empty. Triggering automatic local ingestion from data/raw...")
+        rag_service.ingest("data/raw")
+
     # store globally
     set_rag_service(rag_service)
+
 
     logger.info("Enterprise RAG system ready.")
 

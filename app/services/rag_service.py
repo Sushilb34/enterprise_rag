@@ -104,7 +104,7 @@ class RAGService:
             top_score = documents[0].metadata.get("rerank_score", -99.0)
             logger.info(f"Top rerank score: {top_score:.4f}")
             
-            if top_score >= 0.0: # Threshold for ms-marco-MiniLM-L-12-v2
+            if top_score >= -10.0: # Loosened threshold to show sources even with typos
                 sources = self._extract_sources(documents)
             else:
                 logger.info("Relevance score too low. Hiding sources (likely small talk).")

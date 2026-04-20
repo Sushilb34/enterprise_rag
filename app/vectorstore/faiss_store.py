@@ -132,3 +132,12 @@ class FAISSVectorStore:
 
         logger.info(f"Performing similarity search | top_k={k}")
         return self.vectorstore.similarity_search(query, k=k)
+
+    def is_empty(self) -> bool:
+        """
+        Check if the FAISS index contains any documents.
+        """
+        if self.vectorstore is None or self.vectorstore.index is None:
+            return True
+        
+        return self.vectorstore.index.ntotal == 0

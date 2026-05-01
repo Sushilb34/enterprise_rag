@@ -48,6 +48,23 @@ FAISS_INDEX_PATH=data/vectorstore/faiss_index
 BM25_INDEX_PATH=data/vectorstore/bm25_index.pkl
 DATA_DIR=data/raw
 
+### Local LLM Used
+This project uses a local OpenAI-compatible LLM server running over SSH on another PC. The active local model setup is **Qwen3-8B**, served by `vllm/vllm-openai:latest` in the Docker container named `qwen3-8b`.
+
+Current SSH/Docker container:
+```text
+qwen3-8b   vllm/vllm-openai:latest   "vllm serve Qwen/Qwe..."   0.0.0.0:8000->8000/tcp
+```
+
+Example local endpoint:
+```env
+USE_LOCAL_LLM=True
+LOCAL_LLM_MODEL=qwen3-8b
+LOCAL_LLM_API_URL=http://192.168.1.135:8000/v1/chat/completions
+```
+
+The included `docker-compose.yml` may contain older or alternate local vLLM examples, but the active SSH setup above is the one used by this project.
+
 
 ---
 
@@ -63,6 +80,15 @@ Always run the backend from your virtual environment to ensure `torch` dependenc
 ### 2. Access Documentation
 Once started, you can access the interactive API documentation (Swagger UI) at:
 👉 **[http://localhost:8001/docs](http://localhost:8001/docs)**
+
+To allow other devices on the same Wi-Fi/network to access it, run:
+    uvicorn app.api.server:app --reload --host 0.0.0.0 --port 8001
+
+Then from another device on the same network, open:
+👉 **[http://<your-ip>:8001/docs](http://<your-ip>:8001/docs)**
+
+To know your local IP address:
+- **Windows**: `ipconfig` in Command Prompt, look for "IPv4 Address"
 
 ### 3. Start the Frontend
 In a separate terminal, navigate to your website directory and run:

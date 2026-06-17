@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from contextlib import asynccontextmanager
 
@@ -53,6 +54,15 @@ def create_app() -> FastAPI:
         description="Production-ready Retrieval Augmented Generation API",
         version="1.0.0",
         lifespan=lifespan
+    )
+
+    # Allow cross-origin calls (e.g. opening the UI via LAN IP, or external clients)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Register API routes

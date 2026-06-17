@@ -56,13 +56,21 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
 
-    # Allow cross-origin calls (e.g. opening the UI via LAN IP, or external clients)
+    # Restrict cross-origin calls to the company site (plus localhost for dev).
+    # The wildcard "*" let any website on the internet call the API from a
+    # user's browser; "*" + allow_credentials=True is also rejected by browsers.
+    allowed_origins = [
+        "https://quickfoxconsulting.com",
+        "https://www.quickfoxconsulting.com",
+        "http://localhost:8001",
+        "http://127.0.0.1:8001",
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=allowed_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
     )
 
     # Register API routes

@@ -9,8 +9,10 @@ class QueryRequest(BaseModel):
 
     query: str = Field(
         ...,
+        min_length=1,
+        max_length=2000,
         description="User question to ask the RAG system",
-        example="Summarize the Attention Is All You Need paper"
+        json_schema_extra={"example": "Summarize the Attention Is All You Need paper"},
     )
 
 

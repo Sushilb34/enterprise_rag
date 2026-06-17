@@ -29,13 +29,16 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 - **Fix:** Put the API behind a reverse proxy (Nginx/Caddy/Traefik) terminating TLS, or serve via
   the company's existing HTTPS gateway. Frontend should call an HTTPS origin (already relative, so this is mostly infra).
 
-### C3. CORS is fully open (`allow_origins=["*"]`)
+### C3. CORS is fully open (`allow_origins=["*"]`)  ✅ RESOLVED (2026-06-17)
 - **Where:** [app/api/server.py](app/api/server.py#L58-L66) (added during debugging).
 - **Why:** Any website on the internet can call your API from a user's browser. For a public-but-branded
   assistant you want to restrict who can invoke it. `allow_origins=["*"]` + `allow_credentials=True` is
   also a spec contradiction (browsers reject it when credentials are sent).
 - **Fix:** Set `allow_origins` to the explicit company domain(s), e.g. `["https://quickfoxconsulting.com"]`.
   Drop `allow_credentials=True` unless you actually use cookies.
+- **Done:** Replaced `["*"]` with an explicit allow-list (`quickfoxconsulting.com` + `www`, plus
+  localhost:8001 for dev), set `allow_credentials=False`, and narrowed methods to `GET, POST` and
+  headers to `Content-Type`. *(If origins differ per environment later, consider making the list a setting.)*
 
 ### C4. No timeout on the LLM HTTP call — a hung backend freezes workers  ✅ RESOLVED (2026-06-17)
 - **Where:** [app/llm/local_llm_client.py:76](app/llm/local_llm_client.py#L76) (`requests.post(..., json=payload)` — no `timeout=`).
@@ -58,11 +61,13 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 
 ## 🟠 High — fix before real launch
 
-### H1. Unbounded query length → cost & DoS abuse
+### H1. Unbounded query length → cost & DoS abuse  ✅ RESOLVED (2026-06-17)
 - **Where:** [app/schemas/query.py:10](app/schemas/query.py#L10) (`query: str` with no `max_length`).
 - **Why:** A user can paste megabytes of text. It flows into retrieval, reranking (GPU), and the LLM
   prompt (token cost / latency). Cheap way to abuse or DoS the system.
 - **Fix:** `query: str = Field(..., min_length=1, max_length=2000)` (tune the cap). Reject early with 422.
+- **Done:** Added `min_length=1, max_length=2000` to the `query` field — empty and oversized queries now
+  rejected with 422 before retrieval/GPU/LLM.
 
 ### H2. Error details leaked to the client  ✅ RESOLVED (2026-06-17)
 - **Where:** [app/llm/llm_provider.py:158-160](app/llm/llm_provider.py#L158-L160) returns `f"Error generating answer: {e}"` as the answer.
@@ -144,7 +149,7 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 - **L4. Stale `docker-compose.yml`** in the repo serves `TinyLlama`, but production serves `Qwen/Qwen3-8B`.
   Sync it so the committed compose matches reality.
 - **L5. Pydantic v2 deprecation:** `Field(..., example=...)` in [query.py](app/schemas/query.py#L10) should be
-  `json_schema_extra={"example": ...}`. Cosmetic.
+  `json_schema_extra={"example": ...}`. Cosmetic. ✅ RESOLVED (2026-06-17) — switched to `json_schema_extra` while fixing H1.
 - **L6. `documents_processed` returns `True` not an int** ([rag_service.py:41](app/services/rag_service.py#L41)) — type mismatch with the `IngestResponse` int field.
 - **L7. No `/health` depth.** Health check returns static OK without verifying the LLM backend or index are
   actually reachable. Consider a `/health/ready` that pings the vLLM endpoint and confirms the index loaded.

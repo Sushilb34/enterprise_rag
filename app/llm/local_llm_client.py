@@ -12,11 +12,16 @@ class LocalLLMClient:
         api_url: str = settings.LOCAL_LLM_API_URL,
         max_tokens: int = settings.LOCAL_LLM_MAX_TOKENS,
         temperature: float = settings.LOCAL_LLM_TEMPERATURE,
+        connect_timeout: float = settings.LOCAL_LLM_CONNECT_TIMEOUT,
+        read_timeout: float = settings.LOCAL_LLM_READ_TIMEOUT,
     ):
         self.model_name = model_name
         self.api_url = api_url
         self.max_tokens = max_tokens
         self.temperature = temperature
+        # (connect, read) timeout tuple for requests; prevents a hung backend
+        # from blocking the worker thread forever.
+        self.timeout = (connect_timeout, read_timeout)
 
     def _clean_response(self, text: str) -> str:
         """
@@ -73,7 +78,7 @@ class LocalLLMClient:
         if stop:
             payload["stop"] = stop
 
-        response = requests.post(self.api_url, json=payload)
+        response = requests.post(self.api_url, json=payload, timeout=self.timeout)
         response.raise_for_status()
         data = response.json()
 

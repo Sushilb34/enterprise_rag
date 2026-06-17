@@ -84,6 +84,10 @@ class Settings(BaseSettings):
     LOCAL_LLM_TEMPERATURE: float
     # Switch between local and cloud LLM
     USE_LOCAL_LLM: bool
+    # HTTP timeouts (seconds) for the local LLM call so a hung/slow
+    # backend can't block a worker thread forever. (connect, read)
+    LOCAL_LLM_CONNECT_TIMEOUT: float = 5.0
+    LOCAL_LLM_READ_TIMEOUT: float = 60.0
 
 
     class Config:

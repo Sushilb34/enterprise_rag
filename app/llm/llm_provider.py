@@ -181,8 +181,13 @@ Answer:
                 return response.choices[0].message.content
 
         except Exception as e:
-            logger.error(f"LLM generation error: {e}")
-            return f"Error generating answer: {e}"
+            # Log the real exception server-side, but never leak internals
+            # (backend URLs, stack context) to the end user on a public site.
+            logger.exception(f"LLM generation error: {e}")
+            return (
+                "Sorry, I'm having trouble answering right now — "
+                "please try again in a moment."
+            )
 
     def generate_simple_response(self, query: str, stop: list = None) -> str:
         """

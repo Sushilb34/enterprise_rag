@@ -189,6 +189,22 @@ Answer:
                 "please try again in a moment."
             )
 
+    def health_check(self) -> bool:
+        """
+        Best-effort check that the configured LLM backend is reachable.
+
+        - local: ping the vLLM /health endpoint.
+        - cloud (openai/gemini): we don't make a billable call here, so a
+          successfully constructed client is treated as healthy.
+        """
+        try:
+            if self.provider == "local":
+                return self.llm.health_check()
+            return self.llm is not None
+        except Exception as e:
+            logger.exception(f"LLM backend health check error: {e}")
+            return False
+
     def generate_simple_response(self, query: str, stop: list = None) -> str:
         """
         Lightweight LLM call (no RAG context).

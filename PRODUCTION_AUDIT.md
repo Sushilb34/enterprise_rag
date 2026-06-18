@@ -170,6 +170,12 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 - **L6. `documents_processed` returns `True` not an int** ([rag_service.py:41](app/services/rag_service.py#L41)) — type mismatch with the `IngestResponse` int field.
 - **L7. No `/health` depth.** Health check returns static OK without verifying the LLM backend or index are
   actually reachable. Consider a `/health/ready` that pings the vLLM endpoint and confirms the index loaded.
+  ✅ RESOLVED (2026-06-18) — `/health/` stays the static liveness probe; added `GET /health/ready`
+  ([health.py](app/api/routes/health.py)) that returns 200/`ready` or 503/`not_ready` with a per-check
+  breakdown (`index_loaded`, `llm_backend`). Logic lives in `RAGService.readiness()`; the LLM check pings
+  the vLLM `/health` (derived from `LOCAL_LLM_API_URL`) via `LocalLLMClient.health_check()` with a short
+  timeout. Verified against the live backend (healthy → 200) and an unreachable one (→ 503); 2 new smoke
+  tests added.
 
 ---
 

@@ -1,5 +1,6 @@
 import requests
 import re
+from urllib.parse import urlparse
 from app.core.config import get_settings
 from app.core.logger import get_logger
 logger = get_logger()
@@ -22,6 +23,21 @@ class LocalLLMClient:
         # (connect, read) timeout tuple for requests; prevents a hung backend
         # from blocking the worker thread forever.
         self.timeout = (connect_timeout, read_timeout)
+
+    def health_check(self) -> bool:
+        """
+        Ping the vLLM server's /health endpoint (derived from the API URL).
+        Returns True only if it responds 200 within a short timeout. Used by
+        the /health/ready readiness probe — kept cheap and fast on purpose.
+        """
+        parsed = urlparse(self.api_url)
+        health_url = f"{parsed.scheme}://{parsed.netloc}/health"
+        try:
+            resp = requests.get(health_url, timeout=(3, 5))
+            return resp.status_code == 200
+        except requests.RequestException as e:
+            logger.warning(f"LLM backend health check failed for {health_url}: {e}")
+            return False
 
     def _clean_response(self, text: str) -> str:
         """

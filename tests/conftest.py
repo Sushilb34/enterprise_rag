@@ -23,14 +23,18 @@ class FakeRAGService:
     """
 
     def __init__(self):
-        # Defaults represent a normal, in-scope answer.
+        # Defaults represent a normal, in-scope answer and a ready service.
         self.answer = "Quickfox Consulting provides software consulting services."
         self.sources = [{"file_name": "services.md", "page_number": 1}]
         self.last_question = None
+        self.readiness_checks = {"index_loaded": True, "llm_backend": True}
 
     def query(self, question: str):
         self.last_question = question
         return self.answer, self.sources
+
+    def readiness(self):
+        return self.readiness_checks
 
 
 @pytest.fixture

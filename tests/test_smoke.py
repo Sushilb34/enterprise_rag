@@ -27,6 +27,29 @@ def test_health_ok(client):
     assert body["service"] == "Enterprise RAG API"
 
 
+def test_readiness_ok_when_all_checks_pass(client):
+    client.fake.readiness_checks = {"index_loaded": True, "llm_backend": True}
+
+    resp = client.get("/health/ready")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ready"
+    assert body["checks"] == {"index_loaded": True, "llm_backend": True}
+
+
+def test_readiness_503_when_a_check_fails(client):
+    # e.g. the vLLM backend is unreachable
+    client.fake.readiness_checks = {"index_loaded": True, "llm_backend": False}
+
+    resp = client.get("/health/ready")
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["status"] == "not_ready"
+    assert body["checks"]["llm_backend"] is False
+
+
 def test_query_happy_path(client):
     client.fake.answer = "Quickfox offers RAG and AI consulting."
     client.fake.sources = [{"file_name": "about.md", "page_number": 2}]

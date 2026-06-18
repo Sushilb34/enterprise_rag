@@ -87,6 +87,29 @@ class RAGService:
         return True
     
 
+    def readiness(self) -> dict:
+        """
+        Report whether the RAG subsystems are actually ready to serve, for the
+        /health/ready probe: the retrieval index is loaded (non-empty) and the
+        LLM backend is reachable. Each check is isolated so one failure doesn't
+        mask the other.
+        """
+        checks = {}
+
+        try:
+            checks["index_loaded"] = not self.rag.is_index_empty()
+        except Exception as e:
+            logger.exception(f"Readiness: index check failed: {e}")
+            checks["index_loaded"] = False
+
+        try:
+            checks["llm_backend"] = self.rag.llm.health_check()
+        except Exception as e:
+            logger.exception(f"Readiness: LLM backend check failed: {e}")
+            checks["llm_backend"] = False
+
+        return checks
+
     def query(self, question: str):
         """
         Query the RAG system and return answer + sources.

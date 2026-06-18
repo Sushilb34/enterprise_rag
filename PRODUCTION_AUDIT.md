@@ -159,7 +159,11 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
     LLM scope-refusal (the current refusal test is a contract/passthrough test with the service faked). The
     ad-hoc `test_llm_switch.py` / `test_local_llm.py` root scripts are still present and could be folded in.
 - **L4. Stale `docker-compose.yml`** in the repo serves `TinyLlama`, but production serves `Qwen/Qwen3-8B`.
-  Sync it so the committed compose matches reality.
+  Sync it so the committed compose matches reality. ✅ RESOLVED (2026-06-18) — compose now serves
+  `Qwen/Qwen3-8B` with `--served-model-name qwen3-8b` (matches `LOCAL_LLM_MODEL` in `.env`), port 8000,
+  and `--max-model-len 16384` (fits the client's prompt budget + `LOCAL_LLM_MAX_TOKENS=8000`). Service/
+  container renamed off `tinyllama`. *Infra-tunable values (`--gpu-memory-utilization 0.90`,
+  `--enforce-eager`, `--dtype float16`) are best-guess defaults — confirm against the real GPU box.*
 - **L5. Pydantic v2 deprecation:** `Field(..., example=...)` in [query.py](app/schemas/query.py#L10) should be
   `json_schema_extra={"example": ...}`. Cosmetic. ✅ RESOLVED (2026-06-17) — switched to `json_schema_extra` while fixing H1.
 - **L6. `documents_processed` returns `True` not an int** ([rag_service.py:41](app/services/rag_service.py#L41)) — type mismatch with the `IngestResponse` int field.

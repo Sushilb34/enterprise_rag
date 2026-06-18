@@ -1,7 +1,7 @@
 services:
-  vllm-tinyllama:
+  vllm-qwen3:
     image: vllm/vllm-openai:latest
-    container_name: vllm-tinyllama
+    container_name: vllm-qwen3-8b
     ports:
       - "8000:8000"
     environment:
@@ -10,16 +10,27 @@ services:
       - VLLM_NO_USAGE_STATS=1
     # Nuclear option: bypass all defaults to ensure it runs correctly
     entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
-    
+
     command:
       - --model
-      - TinyLlama/TinyLlama-1.1B-Chat-v1.0
+      - Qwen/Qwen3-8B
+      # The app sends `model: "qwen3-8b"` (LOCAL_LLM_MODEL in .env), so expose
+      # the served model under that name to match the client's request.
+      - --served-model-name
+      - qwen3-8b
       - --dtype
       - float16
+      # Must fit the app's prompt budget: _truncate_prompt() assumes a 16384
+      # token context, and LOCAL_LLM_MAX_TOKENS=8000 of that is reserved for
+      # output. 16384 keeps the committed compose consistent with the client.
       - --max-model-len
-      - "1024"
+      - "16384"
+      # NOTE (infra-tunable, confirm against the real box): an 8B model in
+      # fp16 needs far more VRAM than TinyLlama did (was 0.6). 0.90 is a
+      # sensible default; --enforce-eager trades inference speed for lower
+      # memory and can be dropped if the GPU has headroom.
       - --gpu-memory-utilization
-      - "0.6"
+      - "0.90"
       - --enforce-eager
       - --host
       - 0.0.0.0

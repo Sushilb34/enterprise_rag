@@ -1,0 +1,5 @@
+# Development / test dependencies (not needed to run the service).
+# Install with: pip install -r requirements-dev.txt
+pytest>=8
+# Required by FastAPI's TestClient (usually already present transitively).
+httpx

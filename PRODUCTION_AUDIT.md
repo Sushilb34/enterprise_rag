@@ -149,6 +149,15 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
   (multiple workers behind the proxy, no `--reload`), mindful of the single-GPU backend.
 - **L3. No automated tests / CI.** `test_llm_switch.py`, `test_local_llm.py` are ad-hoc scripts. Add at least
   smoke tests for `/health`, `/query`, and the scope-refusal behavior.
+  - **Tests ✅ DONE (2026-06-18):** Added a `tests/` pytest suite ([tests/test_smoke.py](tests/test_smoke.py),
+    [tests/conftest.py](tests/conftest.py)) with 7 fast, offline smoke tests — `/health`, `/query` happy path,
+    query-length validation (empty/missing/oversized → 422, max-length OK, exercises the H1 cap), and
+    scope-refusal passthrough. The RAG pipeline is faked via dependency override and the lifespan is skipped
+    (no model loading). Added [pytest.ini](pytest.ini) and [requirements-dev.txt](requirements-dev.txt).
+    Run with `pytest`.
+  - **Still open:** CI (e.g. a GitHub Actions workflow) and a live-backend integration test for the *real*
+    LLM scope-refusal (the current refusal test is a contract/passthrough test with the service faked). The
+    ad-hoc `test_llm_switch.py` / `test_local_llm.py` root scripts are still present and could be folded in.
 - **L4. Stale `docker-compose.yml`** in the repo serves `TinyLlama`, but production serves `Qwen/Qwen3-8B`.
   Sync it so the committed compose matches reality.
 - **L5. Pydantic v2 deprecation:** `Field(..., example=...)` in [query.py](app/schemas/query.py#L10) should be

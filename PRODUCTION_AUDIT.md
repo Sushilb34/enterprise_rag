@@ -86,12 +86,17 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 - **Fix:** Add rate limiting (e.g. `slowapi`, or at the reverse proxy). Decide a concurrency cap aligned
   with the single-GPU backend.
 
-### H4. Frontend "reindex" button calls a non-existent route
+### H4. Frontend "reindex" button calls a non-existent route  ✅ RESOLVED (2026-06-18, modified)
 - **Where:** [frontend/index.html:408](frontend/index.html#L408) calls `POST /reindex/`, but the route is
   `POST /admin/reindex` ([admin.py:15](app/api/routes/admin.py#L15)).
 - **Why:** The reindex action silently 404s — feature is broken. Also, a reindex trigger should never be
   exposed in the public client at all (ties into C1).
 - **Fix:** Remove the reindex control from the public UI; keep reindex an authenticated, internal-only action.
+- **Done (per decision):** Button **kept** in the public UI; only the call was amended — corrected the route
+  to `POST /admin/reindex` and added a `response.ok` check so a failed reindex no longer falsely shows
+  "updated". ⚠️ **Open risk:** because C1 (auth on `/admin/*`) was skipped, this now wires a *working*,
+  unauthenticated, destructive reindex trigger into the public client. Anyone using the page can wipe and
+  rebuild the index. Revisit C1 to gate `/admin/reindex` before public exposure.
 
 ### H5. `/ingest` ignores its `data_path` and the endpoint is misleading
 - **Where:** [app/services/rag_service.py:30-41](app/services/rag_service.py#L30-L41) — `ingest(data_dir)`

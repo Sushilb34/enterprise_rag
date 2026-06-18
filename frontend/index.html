@@ -405,7 +405,10 @@
         const status = document.getElementById("reindexStatus");
         status.innerHTML = "⏳ Reindexing...";
         try {
-            await fetch(API_BASE + "/reindex/", {method:"POST"});
+            const response = await fetch(API_BASE + "/admin/reindex", {method:"POST"});
+            // fetch only rejects on network errors, so check the HTTP status
+            // explicitly — otherwise a 404/500 would still show "updated".
+            if (!response.ok) throw new Error("HTTP " + response.status);
             status.innerHTML = "✅ Knowledge base updated!";
             setTimeout(() => status.innerHTML = "", 3000);
         } catch (err) {

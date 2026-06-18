@@ -1,50 +1,40 @@
 services:
-  vllm-qwen3:
+  qwen3-8b:
     image: vllm/vllm-openai:latest
-    container_name: vllm-qwen3-8b
+    container_name: qwen3-8b
+    runtime: nvidia
+    restart: unless-stopped
+    environment:
+      HF_HOME: /root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
     ports:
       - "8000:8000"
-    environment:
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
-      - VLLM_USE_V1=0
-      - VLLM_NO_USAGE_STATS=1
-    # Nuclear option: bypass all defaults to ensure it runs correctly
-    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
-
-    command:
-      - --model
-      - Qwen/Qwen3-8B
-      # The app sends `model: "qwen3-8b"` (LOCAL_LLM_MODEL in .env), so expose
-      # the served model under that name to match the client's request.
-      - --served-model-name
-      - qwen3-8b
-      - --dtype
-      - float16
-      # Must fit the app's prompt budget: _truncate_prompt() assumes a 16384
-      # token context, and LOCAL_LLM_MAX_TOKENS=8000 of that is reserved for
-      # output. 16384 keeps the committed compose consistent with the client.
-      - --max-model-len
-      - "16384"
-      # NOTE (infra-tunable, confirm against the real box): an 8B model in
-      # fp16 needs far more VRAM than TinyLlama did (was 0.6). 0.90 is a
-      # sensible default; --enforce-eager trades inference speed for lower
-      # memory and can be dropped if the GPU has headroom.
-      - --gpu-memory-utilization
-      - "0.90"
-      - --enforce-eager
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
-    volumes:
-      - huggingface_cache:/root/.cache/huggingface
+              capabilities: [gpu]
+    command: >
+      Qwen/Qwen3-8B
+      --quantization bitsandbytes
+      --load-format bitsandbytes
+      --dtype float16
+      --max-model-len 16384
+      --gpu-memory-utilization 0.90
+      --max-num-seqs 32
+      --enforce-eager
+      --served-model-name qwen3-8b
+      --trust-remote-code
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
 
 volumes:
-  huggingface_cache:
+  hf_cache:
+    driver: local

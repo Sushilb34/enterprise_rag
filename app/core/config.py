@@ -88,6 +88,10 @@ class Settings(BaseSettings):
     # backend can't block a worker thread forever. (connect, read)
     LOCAL_LLM_CONNECT_TIMEOUT: float = 5.0
     LOCAL_LLM_READ_TIMEOUT: float = 60.0
+    # Qwen3 "thinking" mode. The reasoning tokens are stripped by
+    # _clean_response and never shown, so leaving this on just adds latency
+    # (~3x slower in testing). Off by default; set True to re-enable.
+    LOCAL_LLM_ENABLE_THINKING: bool = False
 
 
     class Config:

@@ -15,11 +15,13 @@ class LocalLLMClient:
         temperature: float = settings.LOCAL_LLM_TEMPERATURE,
         connect_timeout: float = settings.LOCAL_LLM_CONNECT_TIMEOUT,
         read_timeout: float = settings.LOCAL_LLM_READ_TIMEOUT,
+        enable_thinking: bool = settings.LOCAL_LLM_ENABLE_THINKING,
     ):
         self.model_name = model_name
         self.api_url = api_url
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.enable_thinking = enable_thinking
         # (connect, read) timeout tuple for requests; prevents a hung backend
         # from blocking the worker thread forever.
         self.timeout = (connect_timeout, read_timeout)
@@ -80,7 +82,11 @@ class LocalLLMClient:
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
-                "stream": False
+                "stream": False,
+                # vLLM passes this to the Qwen3 chat template. Disabling
+                # thinking skips the (discarded) <think> reasoning tokens,
+                # cutting latency ~3x. See LOCAL_LLM_ENABLE_THINKING.
+                "chat_template_kwargs": {"enable_thinking": self.enable_thinking},
             }
         else:
             payload = {

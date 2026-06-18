@@ -80,7 +80,8 @@ class HybridRetriever:
         """
         Performs Hybrid Search using Reciprocal Rank Fusion.
         """
-        logger.info(f"Running RRF hybrid retrieval for: {query}")
+        logger.info(f"Running RRF hybrid retrieval | query_length={len(query)} chars")
+        logger.debug(f"Hybrid retrieval query: {query}")
 
         # 1. Fetch more results than top_k to ensure we have a good overlap for RRF
         fetch_k = self.top_k * 2

@@ -68,12 +68,17 @@ class CrossEncoderReranker:
 
             top_docs.append(doc)
 
-        docs_content = [doc.page_content for doc in top_docs]
-
+        # At INFO log only source identifiers (no document bodies — privacy/bloat).
+        doc_sources = [
+            f"{doc.metadata.get('file_name')}#p{doc.metadata.get('page_number')}"
+            for doc in top_docs
+        ]
         logger.info(
             f"Reranking complete | returned={len(top_docs)} | "
             f"top_rerank_score={top_docs[0].metadata.get('rerank_score', 0.0):.4f} | "
-            f"docs_content={docs_content[:100]}"
+            f"sources={doc_sources}"
         )
+        # Full document content only at DEBUG (developer log file).
+        logger.debug(f"Reranked document contents: {[doc.page_content for doc in top_docs]}")
 
         return top_docs

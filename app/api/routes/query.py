@@ -19,7 +19,8 @@ def query_rag(
     """
     Query the Enterprise RAG system directly.
     """
-    logger.info(f"API Query Received: {request.query}")
+    logger.info(f"API query received | length={len(request.query)} chars")
+    logger.debug(f"API query content: {request.query}")
 
     # Step 1: Call RAG pipeline directly
     answer, sources = rag_service.query(request.query)

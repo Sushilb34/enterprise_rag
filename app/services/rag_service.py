@@ -92,7 +92,8 @@ class RAGService:
         Query the RAG system and return answer + sources.
         """
 
-        logger.info(f"Processing query: {question}")
+        logger.info(f"Processing query | length={len(question)} chars")
+        logger.debug(f"Query content: {question}")
 
         answer, documents = self.rag.ask_question(question)
 

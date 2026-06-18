@@ -86,7 +86,8 @@ class EnterpriseRAG:
         if self.retriever is None:
             self.initialize_retriever()
 
-        logger.info(f"Received query: {query}")
+        logger.info(f"Received query | length={len(query)} chars")
+        logger.debug(f"Query content: {query}")
         total_start = time.perf_counter()
 
         # 1. Hybrid retrieval

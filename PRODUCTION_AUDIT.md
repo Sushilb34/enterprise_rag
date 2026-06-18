@@ -106,26 +106,28 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 
 ## 🟡 Medium — schedule soon
 
-### M1. Logs contain full user queries and full document content
+### M1. Logs contain full user queries and full document content  ✅ RESOLVED (2026-06-18)
 - **Where:** [query.py:22](app/api/routes/query.py#L22), [llm_provider reranker logs](app/retrieval/reranker.py),
   [logger.py](app/core/logger.py) (file sink, 10-day retention).
 - **Why:** User-submitted text on a public site may include PII; logging full questions + retrieved doc
   bodies at INFO creates a privacy footprint and bloats logs.
 - **Fix:** Log lengths/IDs instead of full content at INFO; gate verbose content behind DEBUG. Define a
   retention/PII policy.
+- **Done:** All four request-path query logs now emit only `length=N chars` at INFO (full text at DEBUG):
+  [query.py](app/api/routes/query.py#L22), [rag_service.py](app/services/rag_service.py#L95),
+  [main.py](app/main.py#L89), [hybrid_store.py](app/vectorstore/hybrid_store.py#L83). The reranker logs
+  source IDs (`file#pN`) at INFO and full doc bodies only at DEBUG
+  ([reranker.py](app/retrieval/reranker.py#L73)). Per the requirement that developers still see full
+  detail, the project log file (`logs/rag_system.log`) captures DEBUG while the console stays at the
+  configured `LOG_LEVEL`; PII/retention policy documented in [logger.py](app/core/logger.py).
+  *(Out of scope: [single_ragas_evaluator.py:62](app/evaluation/single_ragas_evaluator.py#L62) logs the
+  full question, but it's an offline eval harness on a curated test set, not the public path.)*
 
 ### M2. Hardcoded private backend IP for the LLM
 - **Where:** [.env:65](.env#L65) `LOCAL_LLM_API_URL = http://192.168.1.135:8000/...`
 - **Why:** A DHCP LAN IP is brittle for production; if the box reboots/changes IP the assistant breaks.
   Also unauthenticated and HTTP.
 - **Fix:** Use a stable hostname / static reservation, secure the vLLM endpoint, and keep it on a trusted network segment.
-
-### M3. Relevance gate only hides sources — it doesn't gate answering
-- **Where:** [rag_service.py:104-110](app/services/rag_service.py#L104-L110) (magic threshold `-10.0`).
-- **Why:** Out-of-scope queries still get a generated answer (now mitigated by the hardened prompt, but the
-  guardrail is prompt-only on a small 8B model). The numeric threshold is undocumented/brittle.
-- **Fix (deferred per your call):** the code-level intent gate we discussed — wire up the existing
-  `IntentRouter` (see L1) or add a scope check. Tracked, not urgent.
 
 ### M4. Auto-ingest on startup can surprise you
 - **Where:** [app/api/server.py:29-31](app/api/server.py#L29-L31) — if the index is empty on boot, it ingests
@@ -140,8 +142,9 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 ## ⚪ Loose ends / lower priority
 
 - **L1. Dead code: `IntentRouter` is never wired in.** [app/intent_router/router.py](app/intent_router/router.py)
-  is fully implemented but the query route calls `rag_service.query()` directly. Either integrate it (M3) or remove it.
-  Note its small-talk prompt has no scope restriction, so integrating it as-is reintroduces an injection surface.
+  is fully implemented but the query route calls `rag_service.query()` directly. Per decision (2026-06-18) the
+  intent router is **not needed** — so this dead code should be removed. (It also has a small-talk prompt with no
+  scope restriction, so keeping it around is an unused injection surface.)
 - **L2. Single uvicorn worker + `--reload`** is a dev configuration. For production use a process manager
   (multiple workers behind the proxy, no `--reload`), mindful of the single-GPU backend.
 - **L3. No automated tests / CI.** `test_llm_switch.py`, `test_local_llm.py` are ad-hoc scripts. Add at least

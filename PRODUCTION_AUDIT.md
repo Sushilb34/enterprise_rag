@@ -141,10 +141,10 @@ can be scheduled after. Each item notes *what*, *where*, *why it matters*, and a
 
 ## ⚪ Loose ends / lower priority
 
-- **L1. Dead code: `IntentRouter` is never wired in.** [app/intent_router/router.py](app/intent_router/router.py)
-  is fully implemented but the query route calls `rag_service.query()` directly. Per decision (2026-06-18) the
-  intent router is **not needed** — so this dead code should be removed. (It also has a small-talk prompt with no
-  scope restriction, so keeping it around is an unused injection surface.)
+- **L1. Dead code: `IntentRouter` is never wired in.** ✅ RESOLVED (2026-06-18) — the `app/intent_router/`
+  package (`router.py`, `intent_prompt.py`) was fully implemented but instantiated nowhere; per decision the
+  intent router is not needed, so the whole package was deleted. This also removes the unscoped small-talk
+  prompt that would have been an injection surface. Verified the app still imports/builds cleanly afterward.
 - **L2. Single uvicorn worker + `--reload`** is a dev configuration. For production use a process manager
   (multiple workers behind the proxy, no `--reload`), mindful of the single-GPU backend.
 - **L3. No automated tests / CI.** `test_llm_switch.py`, `test_local_llm.py` are ad-hoc scripts. Add at least
